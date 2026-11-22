@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ОНТ RP</title>
+<script src="https://telegram.org"></script>
+<style>
+  :root {
+    --bg: #0f172a;
+    --card: #1e293b;
+    --text: #f8fafc;
+    --muted: #94a3b8;
+    --beige: #e2c9a6;
+    --blue: #38bdf8;
+    --purple: #a855f7;
+    --gta-grad: linear-gradient(135deg, #e2c9a6 0%, #38bdf8 50%, #a855f7 100%);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+  body { background: var(--bg); color: var(--text); padding: 12px; padding-bottom: 80px; min-height: 100vh; user-select: none; }
+  .gta-title {
+    font-size: 28px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px;
+    background: var(--gta-grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    text-align: center; margin-bottom: 12px;
+  }
+  .card {
+    background: var(--card); border-radius: 16px; padding: 14px; margin-bottom: 12px;
+    border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+  }
+  input, textarea, select {
+    width: 100%; padding: 11px 12px; margin: 6px 0; border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.15); background: var(--bg); color: var(--text); font-size: 14px;
+  }
+  button {
+    width: 100%; padding: 12px; border: none; border-radius: 12px; font-weight: 700;
+    font-size: 14px; cursor: pointer; transition: 0.15s; margin-top: 4px;
+  }
+  button:active { transform: scale(0.97); }
+  .btn-gta { background: var(--gta-grad); color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px; }
+  .btn-sec { background: rgba(255,255,255,0.1); color: var(--text); }
+  .btn-red { background: #ef4444; color: #fff; }
+  .btn-sm { padding: 7px 10px; font-size: 12px; border-radius: 8px; }
+  .nav { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 12px; scrollbar-width: none; }
+  .nav::-webkit-scrollbar { display: none; }
+  .tab-btn {
+    white-space: nowrap; width: auto; padding: 8px 14px; border-radius: 20px;
+    background: var(--card); color: var(--muted); font-size: 13px; border: 1px solid rgba(255,255,255,0.06);
+  }
+  .tab-btn.active { background: var(--gta-grad); color: #0f172a; border: none; }
+  .avatar { width: 62px; height: 62px; border-radius: 50%; object-fit: cover; border: 2px solid var(--blue); }
+  .badge { display: inline-block; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; margin: 2px 3px 2px 0; }
+  .b-vip1 { background: rgba(56,189,248,0.2); color: var(--blue); border: 1px solid var(--blue); }
+  .b-vip2 { background: rgba(168,85,247,0.2); color: var(--purple); border: 1px solid var(--purple); }
+  .b-raim { background: var(--gta-grad); color: #0f172a; }
+  .b-staff { background: rgba(226,201,166,0.15); color: var(--beige); border: 1px solid var(--beige); }
+  .award-pill {
+    display: inline-block; background: rgba(15,23,42,0.7); padding: 6px 10px; border-radius: 10px;
+    margin: 4px 4px 0 0; font-size: 13px; border: 1px solid rgba(255,255,255,0.1); cursor: pointer;
+  }
+  .flag-box {
+    width: 54px; height: 36px; border-radius: 6px; overflow: hidden; position: relative;
+    display: flex; flex-direction: column; border: 1px solid rgba(255,255,255,0.25);
+  }
+  .flag-box div { flex: 1; }
+  .flag-icon { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+  .err { color: #f87171; font-size: 13px; margin: 6px 0; text-align: center; font-weight: 600; }
+  .modal-bg {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.78); display: none;
+    align-items: center; justify-content: center; padding: 16px; z-index: 999;
+  }
+  .modal-box { background: var(--card); border-radius: 18px; padding: 18px; width: 100%; max-width: 380px; border: 1px solid rgba(255,255,255,0.15); }
+</style>
+</head>
+<body>
+
+<div id="authScreen">
+  <div class="gta-title">ОНТ RP</div>
+  <div class="card">
+    <div style="display:flex;gap:8px;margin-bottom:10px;">
+      <button id="btnModeLogin" class="btn-gta" onclick="setAuthMode('login')">Вход</button>
+      <button id="btnModeReg" class="btn-sec" onclick="setAuthMode('reg')">Регистрация</button>
+    </div>
+    <input id="inNick" placeholder="Ник (1–32 символа)" autocomplete="off">
+    <input id="inUser" placeholder="Username (до 12 символов или -)" autocomplete="off">
+    <input id="inPass" type="password" placeholder="Пароль (8–15 символов)" autocomplete="new-password">
+    <div id="authErr" class="err"></div>
+    <button class="btn-gta" onclick="submitAuth()">Продолжить</button>
+  </div>
+</div>
+
+<div id="appScreen" style="display:none;">
+  <div class="nav" id="navBar"></div>
+  <div id="mainContent"></div>
+</div>
+
+<div id="modalBg" class="modal-bg" onclick="if(event.target===this)closeModal()">
+  <div class="modal-box" id="modalContent"></div>
+</div>
+
+<script>
+const DB_URL = 'https://firebaseio.com';
+const OWNER_KEY = 'R9m#kL8$vP2@xQ7!zW4&nB6*cM5^jH';
+
+let db = {
+  users: {}, applications: {}, news: [], events: [], rules: [], market: [], bp: [],
+  flag: { top: '#e2c9a6', mid: '#38bdf8', bot: '#a855f7', icon: '👑' }, chatLink: ''
+};
+let currentUser = localStorage.getItem('ont_uid') || null;
+let authMode = 'login';
+let currentTab = 'profile';
+let staffUnlocked = false;
+let testAsPlayer = false;
+let tapCount = 0, tapTimer = null;
+
+if (window.Telegram && Telegram.WebApp) {
+  Telegram.WebApp.ready();
+  Telegram.WebApp.expand();
+}
+
+async function loadDB() {
+  const local = localStorage.getItem('ont_db_backup');
+  if (local) { try { db = Object.assign(db, JSON.parse(local)); } catch(e){} }
+  try {
+    const res = await fetch(DB_URL);
+    const data = await res.json();
+    if (data && typeof data === 'object') {
+      db = Object.assign(db, data);
+      if (!db.users) db.users = {};
+      localStorage.setItem('ont_db_backup', JSON.stringify(db));
+    }
+  } catch (e) {}
+}
+
+async function saveDB() {
+  localStorage.setItem('ont_db_backup', JSON.stringify(db));
+  try {
+    await fetch(DB_URL, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(db)
+    });
+  } catch (e) {}
+}
+document.body.addEventListener('click', (e) => {
+  if (['INPUT','TEXTAREA','SELECT','BUTTON','A'].includes(e.target.tagName)) return;
+  tapCount++;
+  clearTimeout(tapTimer);
+  tapTimer = setTimeout(() => { tapCount = 0; }, 700);
+  if (tapCount >= 3) {
+    tapCount = 0;
+    openOwnerKeyModal();
+  }
+});
+
+function openOwnerKeyModal() {
+  showModal(`
+    <h3 style="margin-bottom:8px;">🔑 Доступ владельца</h3>
+    <input id="ownerKeyInput" type="password" placeholder="Введите 30-значный ключ">
+    <div id="ownerKeyErr" class="err"></div>
+    <button class="btn-gta" onclick="verifyOwnerKey()">Активировать права Райма</button>
+    <button class="btn-sec" onclick="closeModal()">Отмена</button>
+  `);
+}
+
+function verifyOwnerKey() {
+  const val = document.getElementById('ownerKeyInput').value.trim();
+  if (val !== OWNER_KEY) {
+    document.getElementById('ownerKeyErr').textContent = 'Неверный секретный ключ!';
+    return;
+  }
+  closeModal();
+  if (currentUser && db.users[currentUser]) {
+    db.users[currentUser].isRaim = true;
+    db.users[currentUser].nick = 'Райм';
+    saveDB();
+    renderMain();
+  } else {
+    localStorage.setItem('ont_raim_unlocked', '1');
+    showNotice('Ключ принят! Теперь войдите или зарегистрируйтесь.');
+  }
+}
+
+function setAuthMode(m) {
+  authMode = m;
+  document.getElementById('btnModeLogin').className = m === 'login' ? 'btn-gta' : 'btn-sec';
+  document.getElementById('btnModeReg').className = m === 'reg' ? 'btn-gta' : 'btn-sec';
+  document.getElementById('authErr').textContent = '';
+}
+
+async function submitAuth() {
+  const errEl = document.getElementById('authErr');
+  errEl.textContent = '';
+  let nick = document.getElementById('inNick').value.trim();
+  const user = document.getElementById('inUser').value.trim();
+  const pass = document.getElementById('inPass').value;
+
+  if (nick.length < 1 || nick.length > 32) return errEl.textContent = 'Ник должен быть от 1 до 32 символов.';
+  if (user !== '-' && !/^[a-zA-Z0-9_]{1,12}$/.test(user)) return errEl.textContent = 'Username: до 12 англ. букв/цифр/_ или одиночный -';
+  if (pass.length < 8 || pass.length > 15) return errEl.textContent = 'Пароль должен быть от 8 до 15 символов.';
+
+  await loadDB();
+  const hasOwnerKey = localStorage.getItem('ont_raim_unlocked') === '1';
+
+  if (nick.toLowerCase() === 'raim' && !hasOwnerKey) {
+    nick = 'Житель ОНТ';
+  }
+
+  const uid = 'u_' + user.toLowerCase() + '_' + nick.toLowerCase().replace(/\s+/g, '');
+
+  if (authMode === 'reg') {
+    if (db.users[uid]) return errEl.textContent = 'Такой аккаунт уже существует. Переключитесь на Вход.';
+    db.users[uid] = {
+      nick, username: user, pass, balance: 0, xp: 0, vip: 0, paidBp: false,
+      roles: [], awards: [], items: [], isRaim: hasOwnerKey, citizen: hasOwnerKey, banned: false
+    };
+    await saveDB();
+  } else {
+    const found = db.users[uid];
+    if (!found || found.pass !== pass) return errEl.textContent = 'Неверный ник, username или пароль.';
+    if (found.banned && !found.isRaim) return errEl.textContent = 'Ваш аккаунт заблокирован администрацией ОНТ.';
+    if (hasOwnerKey) { found.isRaim = true; found.nick = 'Райм'; await saveDB(); }
+  }
+
+  currentUser = uid;
+  localStorage.setItem('ont_uid', uid);
+  startApp();
+}
+
+function logout() {
+  currentUser = null;
+  staffUnlocked = false;
+  testAsPlayer = false;
+  localStorage.removeItem('ont_uid');
+  document.getElementById('appScreen').style.display = 'none';
+  document.getElementById('authScreen').style.display = 'block';
+}
+const TABS = [
+  { id: 'profile', name: '👤 Профиль' },
+  { id: 'news', name: '📰 Новости' },
+  { id: 'events', name: '🎉 Эвенты' },
+  { id: 'market', name: '🛒 Рынок' },
+  { id: 'bp', name: '🎫 Battle Pass' },
+  { id: 'mine', name: '⛏ Шахта' },
+  { id: 'bank', name: '🏦 Банк' },
+  { id: 'top', name: '🏆 Топ' },
+  { id: 'rules', name: '📜 Правила' },
+  { id: 'roles', name: '🎭 Роли' }
+];
+
+async function startApp() {
+  await loadDB();
+  if (!currentUser || !db.users[currentUser]) return logout();
+  document.getElementById('authScreen').style.display = 'none';
+  document.getElementById('appScreen').style.display = 'block';
+  renderNav();
+  renderMain();
+}
+
+function renderNav() {
+  const nav = document.getElementById('navBar');
+  nav.innerHTML = TABS.map(t => `<button class="tab-btn ${currentTab === t.id ? 'active' : ''}" onclick="switchTab('${t.id}')">${t.name}</button>`).join('');
+}
+
+function switchTab(id) {
+  currentTab = id;
+  renderNav();
+  renderMain();
+}
+
+function renderMain() {
+  const me = db.users[currentUser];
+  if (!me) return logout();
+  const isRaim = me.isRaim && !testAsPlayer;
+  const content = document.getElementById('mainContent');
+
+  const f = db.flag || { top: '#e2c9a6', mid: '#38bdf8', bot: '#a855f7', icon: '👑' };
+  const flagHtml = `<div class="flag-box"><div style="background:${f.top}"></div><div style="background:${f.mid}"></div><div style="background:${f.bot}"></div><div class="flag-icon">${f.icon}</div></div>`;
+
+  let html = '';
+
+  if (currentTab === 'profile') {
+    const vipBadge = me.vip === 2 ? `<span class="badge b-vip2">VIP 2</span>` : me.vip === 1 ? `<span class="badge b-vip1">VIP 1</span>` : '';
+    const raimBadge = me.isRaim ? `<span class="badge b-raim">ВЛАДЕЛЕЦ ОНТ</span>` : '';
+    const staffBadges = (me.roles || []).map(r => `<span class="badge b-staff">${esc(r)}</span>`).join('');
+    
+    const awardsHtml = (me.awards || []).length ? me.awards.map((a, idx) => `<div class="award-pill" onclick="showAwardModal('${currentUser}', ${idx})">${a.emoji} ${esc(a.title)}</div>`).join('') : '<div style="color:var(--muted);font-size:13px;">Наград пока нет</div>';
+    const itemsHtml = (me.items || []).length ? me.items.map(it => `<div class="award-pill">${it.emoji} ${esc(it.name)}</div>`).join('') : '<div style="color:var(--muted);font-size:13px;">Имущества пока нет</div>';
+
+    const myApp = db.applications && db.applications[currentUser];
+    let citizenBlock = '';
+    if (me.citizen || me.isRaim) {
+      citizenBlock = `<div style="color:#34d399;font-size:13px;font-weight:700;">✅ Гражданин ОНТ</div>`;
+      if (db.chatLink) citizenBlock += `<a href="${db.chatLink}" target="_blank" style="text-decoration:none;"><button class="btn-gta" style="margin-top:8px;">💬 Войти в закрытый чат ОНТ</button></a>`;
+    } else if (myApp === 'pending') {
+      citizenBlock = `<div style="color:var(--beige);font-size:13px;">⏳ Заявка на гражданство на рассмотрении</div>`;
+    } else {
+      citizenBlock = `<button class="btn-sec" onclick="applyCitizenship()">🛂 Подать заявку на гражданство ОНТ</button>`;
+    }
+
+    html = `
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <span style="font-size:12px;color:var(--muted);">ГОСУДАРСТВО ОНТ</span>${flagHtml}
+        </div>
+        <div style="display:flex;gap:14px;align-items:center;">
+          <img src="${me.photo || 'https://placeholder.com'}" class="avatar">
+          <div>
+            <div style="font-size:18px;font-weight:800;">${esc(me.nick)}</div>
+            <div style="color:var(--blue);font-size:13px;">${me.username !== '-' ? '@' + esc(me.username) : 'Без юзернейма'}</div>
+            <div style="margin-top:4px;">${raimBadge}${vipBadge}${staffBadges}</div>
+          </div>
+        </div>
+        <div style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.08);display:flex;justify-content:space-between;">
+          <div><div style="font-size:12px;color:var(--muted);">Баланс</div><div style="font-size:22px;font-weight:800;color:var(--beige);">${me.balance || 0} ß</div></div>
+          <div style="text-align:right;"><div style="font-size:12px;color:var(--muted);">Battle Pass</div><div style="font-size:16px;font-weight:700;">Ур. ${Math.floor((me.xp || 0)/100) + 1} (${me.xp || 0} XP) ${me.paidBp ? '🌟' : ''}</div></div>
+        </div>
+        <div style="margin-top:12px;">${citizenBlock}</div>
+      </div>
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+          <b>🏅 Награды</b>
+          <button class="btn-sec btn-sm" style="width:auto;" onclick="toggleHideAwards()">${me.hideAwards ? '👁 Показать всем' : '🙈 Скрыть'}</button>
+        </div>
+        <div>${awardsHtml}</div>
+      </div>
+      <div class="card"><b>🏠 Имущество</b><div style="margin-top:6px;">${itemsHtml}</div></div>
+      <div class="card">
+        <b>⚙️ Настройки</b>
+        <button class="btn-sec" onclick="linkTelegram()" style="margin-top:8px;">📲 Подключить профиль Telegram</button>
+        ${me.tgId ? `<div style="font-size:12px;color:#34d399;margin-top:4px;">Привязан TG ID: ${me.tgId}</div>` : ''}
+        <button class="btn-red" onclick="logout()" style="margin-top:8px;">🚪 Выйти из аккаунта</button>
+      </div>`;
+  }
+  if (currentTab === 'news') {
+    const canPost = isRaim || (me.roles || []).some(r => r.toLowerCase().includes('администратор'));
+    if (canPost) html += `<div class="card"><b>✍️ Опубликовать новость</b><input id="newsTitle" placeholder="Заголовок"><textarea id="newsText" rows="3" placeholder="Текст новости..."></textarea><button class="btn-gta" onclick="addNews()">Опубликовать</button></div>`;
+    const list = (db.news || []).slice().reverse();
+    html += list.length ? list.map(n => `<div class="card"><div style="font-size:16px;font-weight:700;color:var(--blue);">${esc(n.title)}</div><div style="font-size:14px;margin:8px 0;">${esc(n.text)}</div><div style="font-size:11px;color:var(--muted);">Автор: ${esc(n.author)} • ${n.date}</div></div>`).join('') : '<div class="card">Новостей пока нет.</div>';
+  }
+
+  if (currentTab === 'events') {
+    if (isRaim) html += `<div class="card"><b>📅 Создать эвент</b><input id="evTitle" placeholder="Название"><input id="evTime" placeholder="Дата и время"><textarea id="evDesc" rows="2" placeholder="Описание"></textarea><button class="btn-gta" onclick="addEvent()">Создать</button></div>`;
+    const evs = (db.events || []).slice().reverse();
+    html += evs.length ? evs.map((e, i) => {
+      const realIdx = db.events.length - 1 - i;
+      const parts = e.participants || [];
+      const joined = parts.includes(currentUser);
+      return `<div class="card"><div style="font-size:16px;font-weight:700;color:var(--purple);">${esc(e.title)}</div><div style="font-size:12px;color:var(--beige);">⏰ ${esc(e.time)}</div><div style="font-size:14px;margin:8px 0;">${esc(e.desc)}</div><div style="font-size:12px;color:var(--muted);margin-bottom:8px;">Участников: ${parts.length}</div><button class="${joined ? 'btn-sec' : 'btn-gta'}" onclick="joinEvent(${realIdx})">${joined ? '✅ Вы участвуете' : '🙋‍♂️ Участвовать'}</button></div>`;
+    }).join('') : '<div class="card">Активных эвентов нет.</div>';
+  }
+
+  if (currentTab === 'market') {
+    if (isRaim) html += `<div class="card"><b>➕ Добавить товар</b><select id="mkCat"><option value="Машина">🚗 Машина</option><option value="Дом">🏠 Дом</option><option value="Бизнес">🏢 Бизнес</option><option value="Другое">📦 Другое</option></select><input id="mkEmoji" placeholder="Эмодзи"><input id="mkName" placeholder="Название"><input id="mkPrice" type="number" placeholder="Цена в ß"><button class="btn-gta" onclick="addMarketItem()">Добавить</button></div>`;
+    const items = db.market || [];
+    html += items.length ? items.map((it, idx) => `<div class="card" style="display:flex;justify-content:space-between;align-items:center;"><div><span style="font-size:11px;color:var(--blue);">${esc(it.cat)}</span><div style="font-size:16px;font-weight:700;">${it.emoji} ${esc(it.name)}</div><div style="color:var(--beige);font-weight:700;">${it.price} ß</div></div><button class="btn-gta btn-sm" style="width:auto;" onclick="buyItem(${idx})">Купить</button></div>`).join('') : '<div class="card">На рынке пусто.</div>';
+  }
+
+  if (currentTab === 'bp') {
+    const canEditBp = isRaim || (me.roles || []).includes('Заполнитель Battle Pass');
+    if (canEditBp) html += `<div class="card"><b>🎫 Добавить уровень BP</b><input id="bpLvl" type="number" placeholder="Уровень"><input id="bpFree" placeholder="Бесплатная награда"><input id="bpPaid" placeholder="Платная награда"><button class="btn-gta" onclick="addBpLevel()">Добавить</button></div>`;
+    const myLvl = Math.floor((me.xp || 0) / 100) + 1;
+    html += `<div class="card"><b>Ваш уровень BP: ${myLvl}</b> (${me.xp || 0} XP) • ${me.paidBp ? '🌟 Платный BP' : 'Обычный BP'}</div>`;
+    const levels = (db.bp || []).sort((a,b) => a.lvl - b.lvl);
+    html += levels.length ? levels.map(l => `<div class="card" style="opacity:${myLvl >= l.lvl ? '1' : '0.6'};"><div style="font-weight:800;color:var(--blue);">Уровень ${l.lvl} ${myLvl >= l.lvl ? '✅' : '🔒'}</div><div style="font-size:13px;">🆓 Бесплатно: <b>${esc(l.free)}</b></div><div style="font-size:13px;color:var(--beige);">🌟 Платно: <b>${esc(l.paid)}</b></div></div>`).join('') : '<div class="card">Уровни BP ещё не добавлены.</div>';
+  }
+
+  if (currentTab === 'mine') {
+    const today = new Date().toISOString().slice(0, 10);
+    const minedToday = me.lastMine === today;
+    const inv = me.ores || { coal: 0, iron: 0, gold: 0, diamond: 0 };
+    html += `<div class="card"><b>⛏ Шахта ОНТ</b><p style="font-size:13px;color:var(--muted);margin:6px 0;">1 раз в день. Бонус XP: VIP 1 (+10 XP), VIP 2 (+25 XP).</p><button class="btn-gta" onclick="mineOre()" ${minedToday ? 'disabled style="opacity:0.5;"' : ''}>${minedToday ? '⏳ Сегодня уже копали' : '⛏ Добыть руду'}</button></div><div class="card"><b>🎒 Рюкзак руды</b><div style="font-size:14px;line-height:1.8;margin:8px 0;">🪨 Уголь: <b>${inv.coal || 0}</b> (10 ß)<br>⛓ Железо: <b>${inv.iron || 0}</b> (25 ß)<br>🪙 Золото: <b>${inv.gold || 0}</b> (50 ß)<br>💎 Алмаз: <b>${inv.diamond || 0}</b> (120 ß)</div><button class="btn-sec" onclick="sellOres()">💰 Продать всю руду</button></div>`;
+  }
+
+  if (currentTab === 'bank') {
+    const debt = me.debt || 0;
+    html += `<div class="card"><b>🏦 Банк ОНТ (Кредиты)</b><div style="font-size:14px;margin:8px 0;">Лимит: <b>500 ß</b> • Ваш долг: <b style="color:#f87171;">${debt} ß</b></div><input id="loanAmount" type="number" placeholder="Сумма кредита"><button class="btn-gta" onclick="takeLoan()">Взять кредит</button>${debt > 0 ? `<button class="btn-sec" onclick="repayLoan()">💸 Погасить долг (${debt} ß)</button>` : ''}</div>`;
+  }
+
+  if (currentTab === 'top') {
+    const usersArr = Object.entries(db.users || {});
+    const totalTreasury = usersArr.reduce((sum, [, u]) => sum + (u.balance || 0), 0);
+    usersArr.sort((a, b) => (b.balance || 0) - (a.balance || 0));
+    html += `<div class="card" style="text-align:center;"><div style="font-size:12px;color:var(--muted);">ОБЩАЯ КАЗНА ЖИТЕЛЕЙ ОНТ</div><div style="font-size:24px;font-weight:800;color:var(--beige);">${totalTreasury} ß</div></div>`;
+    html += usersArr.map(([uid, u], idx) => {
+      const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx + 1}`;
+      return `<div class="card" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="openUserProfile('${uid}')"><div><b>${medal} ${esc(u.nick)}</b><div style="font-size:11px;color:var(--muted);">${u.username !== '-' ? '@' + esc(u.username) : ''}</div></div><div style="font-weight:800;color:var(--blue);">${u.balance || 0} ß</div></div>`;
+    }).join('');
+  }
+
+  if (currentTab === 'rules') {
+    if (isRaim) html += `<div class="card"><b>📜 Добавить правило</b><input id="ruleNum" placeholder="Пункт (1.1)"><textarea id="ruleText" rows="2" placeholder="Текст правила"></textarea><button class="btn-gta" onclick="addRule()">Добавить</button></div>`;
+    const rules = db.rules || [];
+    html += rules.length ? rules.map(r => `<div class="card"><b style="color:var(--beige);">Пункт ${esc(r.num)}</b><div style="font-size:14px;margin-top:4px;">${esc(r.text)}</div></div>`).join('') : '<div class="card">Правил пока нет.</div>';
+  }
+
+  if (currentTab === 'roles') {
+    html += `<div class="card"><b>👑 Роли и VIP</b><p style="font-size:13px;line-height:1.6;margin-top:8px;"><b>💎 VIP 1:</b> Голубой бейдж, +10 XP в шахте.<br><b>🔮 VIP 2:</b> Фиолетовый бейдж, +25 XP в шахте.<br><b>🎫 Заполнитель BP:</b> Наполнение веток Battle Pass.<br><b>🏥 Санитар Наград:</b> Выдача наград жителям.<br><b>🛡 Мл. / Ст. Модератор:</b> Контроль порядка.<br><b>⚡ Администраторы:</b> Новости и блокировка нарушителей.</p></div>`;
+  }
+
+  if ((me.roles || []).length > 0 && !testAsPlayer) html += renderStaffPanel(me);
+  if (me.isRaim) html += renderRaimPanel(me);
+  content.innerHTML = html;
+}
+function renderStaffPanel(me) {
+  if (!me.staffPass) return `<div class="card" style="border:1px solid var(--blue);"><b>🔐 Придумайте пароль сотрудника</b><input id="newStaffPass" type="password" placeholder="Новый пароль"><button class="btn-gta" onclick="setStaffPass()">Сохранить</button></div>`;
+  if (!staffUnlocked) return `<div class="card" style="border:1px solid var(--blue);"><b>🔐 Вход в панель персонала</b><input id="checkStaffPass" type="password" placeholder="Пароль сотрудника"><button class="btn-gta" onclick="unlockStaff()">Открыть</button></div>`;
+
+  const isSanitar = me.roles.includes('Санитар Наград');
+  const isAdmin = me.roles.some(r => r.toLowerCase().includes('администратор'));
+  const usersOpts = Object.entries(db.users).filter(([, u]) => !u.isRaim).map(([k, u]) => `<option value="${k}">${esc(u.nick)} (@${esc(u.username)})</option>`).join('');
+
+  let pHtml = `<div class="card" style="border:1px solid var(--blue);"><b>🛠 Панель персонала</b>`;
+  if (isSanitar) pHtml += `<div style="margin-top:8px;"><select id="awTarget">${usersOpts}</select><input id="awEmoji" placeholder="Эмодзи"><input id="awTitle" placeholder="Название награды"><input id="awDesc" placeholder="Описание"><button class="btn-gta" onclick="giveAward()">Выдать награду</button></div>`;
+  if (isAdmin) pHtml += `<div style="margin-top:10px;"><select id="banTarget">${usersOpts}</select><button class="btn-red" onclick="toggleBanUser()">Блок / Разблок игрока</button></div>`;
+  return pHtml + `</div>`;
+}
+
+function renderRaimPanel(me) {
+  if (testAsPlayer) return `<div class="card" style="text-align:center;"><button class="btn-gta" onclick="toggleTestMode()">👁 Выйти из режима «Тест как игрок»</button></div>`;
+
+  const usersOpts = Object.entries(db.users).map(([k, u]) => `<option value="${k}">${esc(u.nick)} (${u.balance || 0} ß)</option>`).join('');
+  const apps = Object.entries(db.applications || {}).filter(([, st]) => st === 'pending');
+  const appsHtml = apps.length ? apps.map(([uid]) => {
+    const u = db.users[uid];
+    return u ? `<div style="display:flex;justify-content:space-between;align-items:center;margin:6px 0;"><span>${esc(u.nick)}</span><div><button class="btn-gta btn-sm" style="width:auto;" onclick="handleApp('${uid}', true)">✅</button> <button class="btn-red btn-sm" style="width:auto;" onclick="handleApp('${uid}', false)">❌</button></div></div>` : '';
+  }).join('') : '<div style="font-size:12px;color:var(--muted);">Заявок нет</div>';
+
+  const f = db.flag || { top: '#e2c9a6', mid: '#38bdf8', bot: '#a855f7', icon: '👑' };
+  return `
+    <div class="card" style="border:2px solid var(--purple);">
+      <b style="color:var(--beige);">👑 Панель Владельца ОНТ (Райм)</b>
+      <div style="margin-top:10px;"><b>🛂 Заявки:</b>${appsHtml}</div>
+      <div style="margin-top:10px;"><b>💰 Баланс (ß):</b><select id="balTarget">${usersOpts}</select><input id="balAmount" type="number" placeholder="Сумма"><div style="display:flex;gap:6px;"><button class="btn-gta btn-sm" onclick="editBalance('add')">+ Выдать</button><button class="btn-red btn-sm" onclick="editBalance('sub')">- Забрать</button><button class="btn-sec btn-sm" onclick="editBalance('set')">= Задать</button></div></div>
+      <div style="margin-top:10px;"><b>🎭 Роли и VIP:</b><select id="roleTarget">${usersOpts}</select><select id="roleSelect"><option value="VIP1">VIP 1</option><option value="VIP2">VIP 2</option><option value="PAIDBP">Платный BP</option><option value="Заполнитель Battle Pass">Заполнитель Battle Pass</option><option value="Санитар Наград">Санитар Наград</option><option value="Младший модератор">Младший модератор</option><option value="Старший модератор">Старший модератор</option><option value="Младший администратор">Младший администратор</option><option value="Администратор">Администратор</option><option value="Старший администратор">Старший администратор</option></select><div style="display:flex;gap:6px;"><button class="btn-gta btn-sm" onclick="toggleRole(true)">Выдать</button><button class="btn-red btn-sm" onclick="toggleRole(false)">Снять</button><button class="btn-sec btn-sm" onclick="resetStaffPass()">Сброс пароля</button></div></div>
+      <div style="margin-top:10px;"><b>🏳️ Флаг ОНТ:</b><div style="display:flex;gap:6px;margin:6px 0;"><input type="color" id="fTop" value="${f.top}"><input type="color" id="fMid" value="${f.mid}"><input type="color" id="fBot" value="${f.bot}"><input id="fIcon" value="${f.icon}" style="width:60px;"></div><button class="btn-sec btn-sm" onclick="saveFlag()">Сохранить флаг</button></div>
+      <div style="margin-top:10px;"><b>🔗 Закрытый чат:</b><input id="chatUrlInput" value="${db.chatLink || ''}" placeholder="https://t.me+..."><div style="display:flex;gap:6px;"><button class="btn-gta btn-sm" onclick="saveChatLink(true)">Привязать</button><button class="btn-red btn-sm" onclick="saveChatLink(false)">Отвязать</button></div></div>
+      <div style="margin-top:12px;display:flex;flex-direction:column;gap:8px;"><button class="btn-sec" onclick="toggleTestMode()">👁 Тест как игрок</button><button class="btn-red" onclick="wipeOtherUsers()">⚠️ Удалить чужие аккаунты</button></div>
+    </div>`;
+}
+function linkTelegram() {
+  const tg = window.Telegram?.WebApp?.initDataUnsafe?.user;
+  if (!tg) return showNotice('Откройте приложение в Telegram.');
+  db.users[currentUser].tgId = tg.id;
+  if (tg.photo_url) db.users[currentUser].photo = tg.photo_url;
+  if (tg.username && db.users[currentUser].username === '-') db.users[currentUser].username = tg.username.slice(0, 12);
+  saveDB(); renderMain();
+}
+
+function applyCitizenship() { db.applications = db.applications || {}; db.applications[currentUser] = 'pending'; saveDB(); renderMain(); }
+function handleApp(uid, ok) {
+  if (!db.users[uid]) return;
+  if (ok) {
+    db.applications[uid] = 'approved'; db.users[uid].citizen = true;
+    db.users[uid].awards = db.users[uid].awards || [];
+    db.users[uid].awards.push({ emoji: '🛂', title: 'Паспорт ОНТ', desc: 'Гражданин ОНТ', date: new Date().toLocaleDateString('ru-RU'), by: 'Райм' });
+  } else delete db.applications[uid];
+  saveDB(); renderMain();
+}
+function toggleHideAwards() { db.users[currentUser].hideAwards = !db.users[currentUser].hideAwards; saveDB(); renderMain(); }
+function addNews() {
+  const t = document.getElementById('newsTitle').value.trim(), x = document.getElementById('newsText').value.trim();
+  if (!t || !x) return;
+  db.news = db.news || []; db.news.push({ title: t, text: x, author: db.users[currentUser].nick, date: new Date().toLocaleString('ru-RU') });
+  saveDB(); renderMain();
+}
+function addEvent() {
+  const t = document.getElementById('evTitle').value.trim(), tm = document.getElementById('evTime').value.trim(), d = document.getElementById('evDesc').value.trim();
+  if (!t || !tm) return;
+  db.events = db.events || []; db.events.push({ title: t, time: tm, desc: d, participants: [] });
+  saveDB(); renderMain();
+}
+function joinEvent(i) {
+  const ev = db.events[i]; if (!ev) return;
+  ev.participants = ev.participants || [];
+  if (!ev.participants.includes(currentUser)) { ev.participants.push(currentUser); saveDB(); renderMain(); }
+}
+function addMarketItem() {
+  const cat = document.getElementById('mkCat').value, emoji = document.getElementById('mkEmoji').value.trim() || '📦', name = document.getElementById('mkName').value.trim(), price = parseInt(document.getElementById('mkPrice').value, 10);
+  if (!name || isNaN(price) || price < 0) return;
+  db.market = db.market || []; db.market.push({ cat, emoji, name, price }); saveDB(); renderMain();
+}
+function buyItem(i) {
+  const it = db.market[i], me = db.users[currentUser];
+  if (!it || (me.balance || 0) < it.price) return showNotice('Недостаточно ß!');
+  me.balance -= it.price; me.items = me.items || []; me.items.push(it); saveDB(); renderMain(); showNotice(`Куплено: ${it.name}`);
+}
+function addBpLevel() {
+  const lvl = parseInt(document.getElementById('bpLvl').value, 10), free = document.getElementById('bpFree').value.trim(), paid = document.getElementById('bpPaid').value.trim();
+  if (!lvl || !free) return;
+  db.bp = db.bp || []; db.bp.push({ lvl, free, paid: paid || '—' }); saveDB(); renderMain();
+}
+function mineOre() {
+  const me = db.users[currentUser], today = new Date().toISOString().slice(0, 10);
+  if (me.lastMine === today) return;
+  const r = Math.random();
+  let k = 'coal', n = '🪨 Уголь';
+  if (r > 0.92) { k = 'diamond'; n = '💎 Алмаз'; } else if (r > 0.75) { k = 'gold'; n = '🪙 Золото'; } else if (r > 0.45) { k = 'iron'; n = '⛓ Железо'; }
+  me.ores = me.ores || { coal: 0, iron: 0, gold: 0, diamond: 0 }; me.ores[k] = (me.ores[k] || 0) + 1;
+  const xp = 20 + (me.vip === 2 ? 25 : me.vip === 1 ? 10 : 0);
+  me.xp = (me.xp || 0) + xp; me.lastMine = today; saveDB(); renderMain(); showNotice(`Добыто: ${n} и +${xp} XP!`);
+}
+function sellOres() {
+  const me = db.users[currentUser], inv = me.ores || {};
+  const total = (inv.coal||0)*10 + (inv.iron||0)*25 + (inv.gold||0)*50 + (inv.diamond||0)*120;
+  if (total <= 0) return showNotice('Нет руды.');
+  me.ores = { coal: 0, iron: 0, gold: 0, diamond: 0 }; me.balance = (me.balance || 0) + total; saveDB(); renderMain(); showNotice(`Продано за ${total} ß!`);
+}
+function takeLoan() {
+  const me = db.users[currentUser], debt = me.debt || 0, amt = parseInt(document.getElementById('loanAmount').value, 10);
+  if (isNaN(amt) || amt <= 0 || debt + amt > 500) return showNotice('Лимит долга 500 ß.');
+  me.debt = debt + amt; me.balance = (me.balance || 0) + amt; saveDB(); renderMain();
+}
+function repayLoan() {
+  const me = db.users[currentUser], debt = me.debt || 0;
+  if ((me.balance || 0) < debt) return showNotice('Недостаточно ß.');
+  me.balance -= debt; me.debt = 0; saveDB(); renderMain();
+}
+function addRule() {
+  const num = document.getElementById('ruleNum').value.trim(), text = document.getElementById('ruleText').value.trim();
+  if (!num || !text) return;
+  db.rules = db.rules || []; db.rules.push({ num, text }); saveDB(); renderMain();
+}
+function setStaffPass() {
+  const p = document.getElementById('newStaffPass').value.trim();
+  if (p.length < 4) return showNotice('Минимум 4 символа.');
+  db.users[currentUser].staffPass = p; staffUnlocked = true; saveDB(); renderMain();
+}
+function unlockStaff() {
+  if (document.getElementById('checkStaffPass').value === db.users[currentUser].staffPass) { staffUnlocked = true; renderMain(); } else showNotice('Неверный пароль!');
+}
+function giveAward() {
+  const uid = document.getElementById('awTarget').value, emoji = document.getElementById('awEmoji').value.trim() || '🏅', title = document.getElementById('awTitle').value.trim(), desc = document.getElementById('awDesc').value.trim();
+  if (!uid || !title || db.users[uid].isRaim) return;
+  db.users[uid].awards = db.users[uid].awards || []; db.users[uid].awards.push({ emoji, title, desc, date: new Date().toLocaleDateString('ru-RU'), by: db.users[currentUser].nick });
+  saveDB(); showNotice('Награда выдана!');
+}
+function toggleBanUser() {
+  const uid = document.getElementById('banTarget').value; if (!uid || db.users[uid].isRaim) return;
+  db.users[uid].banned = !db.users[uid].banned; saveDB(); showNotice(db.users[uid].banned ? 'Заблокирован.' : 'Разблокирован.');
+}
+function editBalance(mode) {
+  const uid = document.getElementById('balTarget').value, amt = parseInt(document.getElementById('balAmount').value, 10);
+  if (!uid || isNaN(amt)) return;
+  const cur = db.users[uid].balance || 0;
+  if (mode === 'add') db.users[uid].balance = cur + amt;
+  if (mode === 'sub') db.users[uid].balance = Math.max(0, cur - amt);
+  if (mode === 'set') db.users[uid].balance = Math.max(0, amt);
+  saveDB(); renderMain();
+}
+function toggleRole(give) {
+  const uid = document.getElementById('roleTarget').value, val = document.getElementById('roleSelect').value, u = db.users[uid];
+  if (!u) return;
+  if (val === 'VIP1') u.vip = give ? 1 : 0; else if (val === 'VIP2') u.vip = give ? 2 : 0; else if (val === 'PAIDBP') u.paidBp = give;
+  else { u.roles = u.roles || []; if (give && !u.roles.includes(val)) u.roles.push(val); if (!give) u.roles = u.roles.filter(r => r !== val); }
+  saveDB(); renderMain();
+}
+function resetStaffPass() { const uid = document.getElementById('roleTarget').value; if (db.users[uid]) { delete db.users[uid].staffPass; saveDB(); showNotice('Пароль сброшен.'); } }
+function saveFlag() { db.flag = { top: document.getElementById('fTop').value, mid: document.getElementById('fMid').value, bot: document.getElementById('fBot').value, icon: document.getElementById('fIcon').value.trim() || '👑' }; saveDB(); renderMain(); }
+function saveChatLink(bind) { db.chatLink = bind ? document.getElementById('chatUrlInput').value.trim() : ''; saveDB(); renderMain(); }
+function toggleTestMode() { testAsPlayer = !testAsPlayer; renderMain(); }
+function wipeOtherUsers() { Object.keys(db.users).forEach(k => { if (!db.users[k].isRaim) delete db.users[k]; }); db.applications = {}; saveDB(); renderMain(); showNotice('Аккаунты удалены.'); }
+
+function openUserProfile(uid) {
+  const u = db.users[uid]; if (!u) return;
+  const vip = u.vip === 2 ? '🔮 VIP 2' : u.vip === 1 ? '💎 VIP 1' : 'Нет';
+  const roles = (u.roles || []).join(', ') || 'Житель';
+  const awards = u.hideAwards ? '<i>Скрыто</i>' : ((u.awards || []).map((a, i) => `<div class="award-pill" onclick="showAwardModal('${uid}', ${i})">${a.emoji} ${esc(a.title)}</div>`).join('') || 'Нет');
+  const items = (u.items || []).map(it => `${it.emoji} ${esc(it.name)}`).join(', ') || 'Нет';
+  showModal(`<div style="text-align:center;"><img src="${u.photo || 'https://placeholder.com'}" class="avatar" style="margin:0 auto 8px;"><h3>${esc(u.nick)}</h3><div style="color:var(--blue);font-size:13px;">${u.username !== '-' ? '@' + esc(u.username) : ''}</div></div><div style="margin-top:10px;font-size:13px;line-height:1.7;"><b>Баланс:</b> ${u.balance || 0} ß<br><b>VIP:</b> ${vip}<br><b>Роли:</b> ${esc(roles)}<br><b>Имущество:</b> ${items}<br><b>Награды:</b><br>${awards}</div><button class="btn-sec" style="margin-top:12px;" onclick="closeModal()">Закрыть</button>`);
+}
+function showAwardModal(uid, idx) {
+  const a = db.users[uid]?.awards?.[idx]; if (!a) return;
+  showModal(`<div style="text-align:center;font-size:36px;">${a.emoji}</div><h3 style="text-align:center;">${esc(a.title)}</h3><p style="font-size:14px;margin:10px 0;">${esc(a.desc || '')}</p><div style="font-size:12px;color:var(--muted);">Выдал: <b>${esc(a.by)}</b> • ${a.date}</div><button class="btn-sec" style="margin-top:12px;" onclick="closeModal()">Закрыть</button>`);
+}
+function showNotice(text) { showModal(`<p style="font-size:15px;text-align:center;margin:10px 0;">${esc(text)}</p><button class="btn-gta" onclick="closeModal()">Понятно</button>`); }
+function showModal(inner) { document.getElementById('modalContent').innerHTML = inner; document.getElementById('modalBg').style.display = 'flex'; }
+function closeModal() { document.getElementById('modalBg').style.display = 'none'; }
+function esc(s) { return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+if (currentUser) startApp();
