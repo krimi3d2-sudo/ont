@@ -8,7 +8,7 @@
 <style>
 :root{--bg:#0f172a;--card:#1e293b;--txt:#f8fafc;--mut:#94a3b8;--grad:linear-gradient(135deg,#e2c9a6,#38bdf8,#a855f7)}
 *{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,sans-serif}
-body{background:var(--bg);color:var(--txt);padding:12px 12px 90px;min-height:100vh}
+body{background:var(--bg);color:var(--txt);padding:12px 12px 95px;min-height:100vh}
 .logo{font-size:28px;font-weight:900;text-align:center;background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin:8px 0 14px;letter-spacing:1px}
 .card{background:var(--card);border-radius:16px;padding:14px;margin-bottom:12px;border:1px solid rgba(255,255,255,.08)}
 input,textarea,select{width:100%;padding:11px;margin:6px 0;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:var(--bg);color:var(--txt);font-size:14px}
@@ -28,13 +28,14 @@ button{width:100%;padding:12px;border:none;border-radius:12px;font-weight:700;fo
 .flag div{flex:1}
 .flag span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:15px}
 .err{color:#f87171;font-size:13px;text-align:center;margin:6px 0;font-weight:600}
-.mod{position:fixed;inset:0;background:rgba(0,0,0,.82);display:none;align-items:center;justify-content:center;padding:16px;z-index:99}
+.mod{position:fixed;inset:0;background:rgba(0,0,0,.85);display:none;align-items:center;justify-content:center;padding:16px;z-index:200}
 .mod-in{background:var(--card);border-radius:16px;padding:16px;width:100%;max-width:390px;max-height:85vh;overflow-y:auto}
 .chk-row{display:flex;align-items:center;gap:8px;font-size:13px;margin:6px 0}
 .chk-row input{width:auto;margin:0}
-.decor-bar{position:fixed;bottom:0;left:0;right:0;background:rgba(15,23,42,.92);backdrop-filter:blur(8px);border-top:1px solid rgba(255,255,255,.07);display:flex;justify-content:space-around;padding:10px 0;font-size:20px;z-index:50}
-.decor-bar span{cursor:pointer;opacity:.6;transition:.2s;user-select:none}
-.doc-card{background:linear-gradient(135deg,#1e293b,#0f172a);border:1px solid #38bdf8;border-radius:16px;padding:16px;position:relative;overflow:hidden}
+.decor-bar{position:fixed;bottom:0;left:0;right:0;background:rgba(15,23,42,.95);backdrop-filter:blur(8px);border-top:1px solid rgba(255,255,255,.1);display:flex;justify-content:space-around;padding:12px 0;font-size:22px;z-index:100}
+.decor-bar span{cursor:pointer;opacity:.75;transition:.15s;user-select:none;padding:0 10px}
+.decor-bar span:active{transform:scale(1.25);opacity:1}
+.doc-card{background:linear-gradient(135deg,#1e293b,#0f172a);border:1px solid #38bdf8;border-radius:16px;padding:16px}
 .light-card{background:linear-gradient(135deg,#e2c9a6 0%,#38bdf8 50%,#a855f7 100%);color:#0f172a;border-radius:16px;padding:18px;box-shadow:0 8px 24px rgba(56,189,248,.3)}
 </style>
 </head>
@@ -87,7 +88,7 @@ const DEF_PERMS = {
   'Старший администратор': { news: true, ban: true, award: true }
 };
 
-let db = {users:{},apps:{},news:[],events:[],rules:[],market:[],bp:[],rolePerms:DEF_PERMS,ownerClaimed:false,ownerTgId:null,flag:{top:'#e2c9a6',mid:'#38bdf8',bot:'#a855f7',icon:'👑'},chat:''};
+let db = {users:{},apps:{},news:[],events:[],rules:[],market:[],bp:[],rolePerms:DEF_PERMS,ownerClaimed:false,ownerTgId:null,nextId:1001,flag:{top:'#e2c9a6',mid:'#38bdf8',bot:'#a855f7',icon:'👑'},chat:''};
 let uid = localStorage.getItem('ont_u') || null;
 let mode = 'login', tab = 'prof', staffOk = false, testMode = false;
 
@@ -95,34 +96,44 @@ if(window.Telegram && Telegram.WebApp){Telegram.WebApp.ready();Telegram.WebApp.e
 
 function getTgUser(){
   const wa = window.Telegram && Telegram.WebApp;
-  if(!wa) return null;
-  if(wa.initDataUnsafe && wa.initDataUnsafe.user) return wa.initDataUnsafe.user;
-  if(wa.initData){
-    try{
-      const p = new URLSearchParams(wa.initData);
-      const u = p.get('user');
+  if(wa && wa.initDataUnsafe && wa.initDataUnsafe.user) return wa.initDataUnsafe.user;
+  try{
+    const raw = (wa && wa.initData) || new URLSearchParams(location.hash.slice(1)).get('tgWebAppData') || new URLSearchParams(location.search).get('tgWebAppData');
+    if(raw){
+      const u = new URLSearchParams(raw).get('user');
       if(u) return JSON.parse(u);
-    }catch(e){}
-  }
+    }
+  }catch(e){}
   return null;
 }
 
 async function load(){
   try{const c=localStorage.getItem('ont_b');if(c)db=Object.assign(db,JSON.parse(c));}catch(e){}
-  try{const r=await fetch(DB_URL);const d=await r.json();if(d&&typeof d==='object'){db=Object.assign(db,d);if(!db.users)db.users={};if(!db.apps)db.apps={};if(!db.rolePerms)db.rolePerms=DEF_PERMS;localStorage.setItem('ont_b',JSON.stringify(db));}}catch(e){}
+  try{
+    const r=await fetch(DB_URL);
+    const d=await r.json();
+    if(d&&typeof d==='object'){
+      db=Object.assign(db,d);
+      if(!db.users)db.users={};
+      if(!db.apps)db.apps={};
+      if(!db.nextId)db.nextId=1001;
+      if(!db.rolePerms)db.rolePerms=DEF_PERMS;
+      localStorage.setItem('ont_b',JSON.stringify(db));
+    }
+  }catch(e){}
 }
 async function save(){
   localStorage.setItem('ont_b',JSON.stringify(db));
   try{await fetch(DB_URL,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(db)});}catch(e){}
 }
-
 function tapSecretEmoji(){
   if(db.ownerClaimed) return;
   openM('<h3>🔑 Доступ Владельца ОНТ</h3><input id="kIn" type="password" placeholder="Введите 30-значный ключ"><div id="kErr" class="err"></div><button class="b-gta" onclick="checkKey()">Активировать</button><button class="b-sec" onclick="closeM()">Отмена</button>');
 }
 
-function checkKey(){
-  if(db.ownerClaimed) return closeM();
+async function checkKey(){
+  await load();
+  if(db.ownerClaimed){ closeM(); return msg('Пост Владельца уже занят.'); }
   if(document.getElementById('kIn').value.trim()!==KEY)return document.getElementById('kErr').textContent='Неверный ключ!';
   closeM();
   if(uid&&db.users[uid]){
@@ -130,8 +141,8 @@ function checkKey(){
     db.users[uid].nick='Райм';
     db.users[uid].cit=true;
     if(db.users[uid].tgId){db.ownerClaimed=true;db.ownerTgId=db.users[uid].tgId;}
-    save();render();
-    msg(db.ownerClaimed ? 'Права Райма навсегда закреплены за вашим Telegram!' : 'Права активированы! Нажмите «Подключить профиль Telegram» в настройках, чтобы закрепить их навсегда.');
+    await save();render();
+    msg(db.ownerClaimed ? 'Права Райма закреплены за вашим Telegram!' : 'Права активированы! Привяжите профиль Telegram в настройках, чтобы закрепить их навсегда.');
   }else{
     localStorage.setItem('ont_r','1');
     msg('Ключ принят! Войдите или зарегистрируйтесь, затем привяжите Telegram.');
@@ -156,20 +167,28 @@ async function doAuth(){
   await load();
   const isR = !db.ownerClaimed && localStorage.getItem('ont_r')==='1';
   if(nick.toLowerCase()==='raim'&&!isR)nick='Житель ОНТ';
-  const id='u_'+user.toLowerCase()+'_'+nick.toLowerCase().replace(/\s+/g,'');
+
   if(mode==='reg'){
-    if(db.users[id])return err.textContent='Аккаунт уже существует. Нажмите «Вход».';
-    db.users[id]={nick,username:user,pass,bal:0,xp:0,vip:0,paidBp:false,roles:[],awards:[],items:[],notes:[],priv:'all',fishCoins:0,rodLvl:1,fishBag:[],fishCaught:0,hasPass:false,hasCard:false,isRaim:isR,cit:isR,ban:false};
+    if(user!=='-' && Object.values(db.users).some(u=>(u.username||'').toLowerCase()===user.toLowerCase())){
+      return err.textContent='Этот @username уже занят.';
+    }
+    const shortId = db.nextId++;
+    const id = 'u_' + shortId;
+    db.users[id]={shortId,nick,username:user,pass,bal:0,xp:0,vip:0,paidBp:false,roles:[],awards:[],items:[],notes:[],priv:'all',fishCoins:0,rodLvl:1,fishBag:[],fishCaught:0,hasPass:false,hasCard:false,isRaim:isR,cit:isR,ban:false};
     await save();
+    localStorage.removeItem('ont_r');
+    uid=id;localStorage.setItem('ont_u',id);boot();
   }else{
-    const u=db.users[id];
-    if(!u||u.pass!==pass)return err.textContent='Неверный ник, username или пароль.';
+    const foundEntry = Object.entries(db.users).find(([,u])=>u.pass===pass && (user!=='-' ? (u.username||'').toLowerCase()===user.toLowerCase() : u.nick===nick));
+    if(!foundEntry)return err.textContent='Неверные данные входа или пароль.';
+    const [id, u] = foundEntry;
     if(u.ban&&!u.isRaim)return err.textContent='Ваш аккаунт заблокирован.';
     if(isR){u.isRaim=true;u.nick='Райм';u.cit=true;await save();}
+    localStorage.removeItem('ont_r');
+    uid=id;localStorage.setItem('ont_u',id);boot();
   }
-  localStorage.removeItem('ont_r');
-  uid=id;localStorage.setItem('ont_u',id);boot();
 }
+
 const FISH_NAMES = ['Карась','Окунь','Плотва','Ёрш','Пескарь','Уклейка','Лещ','Линь','Карп','Сазан','Щука','Судак','Сом','Налим','Жерех','Язь','Голавль','Чехонь','Синец','Густера','Ротан','Вьюн','Голец','Хариус','Форель','Лосось','Горбуша','Кета','Нерка','Кижуч','Чавыча','Сиг','Омуль','Муксун','Нельма','Таймень','Ленок','Осётр','Стерлядь','Белуга','Севрюга','Калуга','Угорь','Минога','Корюшка','Навага','Треска','Пикша','Сайда','Минтай','Хек','Путассу','Камбала','Палтус','Тюрбо','Скумбрия','Ставрида','Сельдь','Сардина','Анчоус','Килька','Тюлька','Тунец','Пеламида','Макрель','Марлин','Меч-рыба','Парусник','Дорадо','Сибас','Кефаль','Лобан','Барабулька','Скорпена','Бычок','Морской ёж','Кальмар','Осьминог','Каракатица','Краб','Омар','Лангуст','Креветка','Мидия','Устрица','Морской конёк','Игла-рыба','Фугу','Мурена','Скат','Хвостокол','Акула-катран','Молот-рыба','Тигровая акула','Белая акула','Пиранья','Арапайма','Электрический угорь','Дискус','Скалярия','Неон','Гуппи','Меченосец','Моллинезия','Петушок','Гурами','Астронотус','Арована','Сом-плоскоголов','Пангасиус','Тилапия','Змееголов','Толстолобик','Белый амур','Вобла','Тарань','Шемая','Рыбец','Усач','Маринка','Осман','Берш','Елец','Подуст','Быстрянка','Верховка','Горчак','Шиповка','Щиповка','Колюшка','Бельдюга','Зубатка','Пинагор','Мойва','Сайра','Летучая рыба','Рыба-луна','Рыба-капля','Удильщик','Латимерия'];
 const FISH_DB = Array.from({length: 150}, (_, i) => {
   const name = FISH_NAMES[i] || ('Редкая рыба #' + (i + 1));
@@ -179,7 +198,6 @@ const FISH_DB = Array.from({length: 150}, (_, i) => {
   if (i < 147) return { id: i, name, rar: 'Мифическая', icon: '🦈', price: 180 + (i % 50), weight: 2.5 };
   return { id: i, name, rar: 'Легендарная', icon: '🐋', price: 500 + (i % 100), weight: 0.4 };
 });
-
 function logout(){uid=null;staffOk=false;testMode=false;localStorage.removeItem('ont_u');document.getElementById('appBox').style.display='none';document.getElementById('authBox').style.display='block';}
 
 function hasPerm(me, p){
@@ -193,28 +211,42 @@ const TABS=[['prof','👤 Профиль'],['fish','🎣 Рыбалка'],['ftop
 async function boot(){
   await load();
   const tgU = getTgUser();
-  if(tgU && db.ownerClaimed && db.ownerTgId === tgU.id){
-    const rKey = Object.keys(db.users).find(k => db.users[k].tgId === tgU.id);
+  if(tgU && db.ownerClaimed && String(db.ownerTgId) === String(tgU.id)){
+    const rKey = Object.keys(db.users).find(k => String(db.users[k].tgId) === String(tgU.id));
     if(rKey){ uid = rKey; db.users[uid].isRaim = true; db.users[uid].cit = true; localStorage.setItem('ont_u', uid); }
   }
   if(!uid||!db.users[uid])return logout();
+  if(!db.users[uid].shortId){ db.users[uid].shortId = db.nextId++; save(); }
   document.getElementById('authBox').style.display='none';document.getElementById('appBox').style.display='block';
+  render();
+}
+
+function openTab(id){
+  const me = db.users[uid];
+  if(!me) return;
+  const isCit = Boolean(me.cit) || (Boolean(me.isRaim) && !testMode);
+  if(!isCit && id !== 'prof' && id !== 'fish'){
+    return msg('Доступ закрыт! Пока Райм не подтвердит ваше гражданство ОНТ, доступны только «Профиль» и «Рыбалка».');
+  }
+  tab = id;
   render();
 }
 
 function render(){
   const me=db.users[uid];if(!me)return logout();
-  const raim=me.isRaim&&!testMode;
-  const isCit=me.cit||raim;
-  document.getElementById('nav').innerHTML=TABS.map(([id,n])=>'<button class="tab '+(tab===id?'act':'')+'" onclick="tab=\''+id+'\';render()">'+n+'</button>').join('');
+  const raim=Boolean(me.isRaim)&&!testMode;
+  const isCit=Boolean(me.cit)||raim;
+
+  if(!isCit && tab !== 'prof' && tab !== 'fish') tab = 'prof';
+
+  document.getElementById('nav').innerHTML=TABS.map(([id,n])=>{
+    const locked = !isCit && id !== 'prof' && id !== 'fish';
+    return '<button class="tab '+(tab===id?'act':'')+'" style="'+(locked?'opacity:0.45':'')+'" onclick="openTab(\''+id+'\')">'+(locked?'🔒 ':'')+n+'</button>';
+  }).join('');
+
   const f=db.flag||{top:'#e2c9a6',mid:'#38bdf8',bot:'#a855f7',icon:'👑'};
   const flg='<div class="flag"><div style="background:'+f.top+'"></div><div style="background:'+f.mid+'"></div><div style="background:'+f.bot+'"></div><span>'+f.icon+'</span></div>';
   let h='';
-
-  if(!isCit && !['prof','fish','ftop'].includes(tab)){
-    document.getElementById('view').innerHTML='<div class="card" style="text-align:center;padding:24px 14px"><div style="font-size:36px;margin-bottom:8px">🛂</div><b>Доступ закрыт</b><p style="font-size:13px;color:var(--mut);margin:8px 0">Пока Райм не подтвердит ваше гражданство ОНТ, вы не можете брать кредиты, работать в шахте и использовать другие функции страны. Доступны только <b>Профиль</b> и <b>Рыбалка</b>.</p><button class="b-gta" onclick="tab=\'prof\';render()">Перейти в Профиль</button></div>';
-    return;
-  }
 
   if(tab==='prof'){
     const bdg=(me.isRaim?'<span class="tag b-gta">ВЛАДЕЛЕЦ</span>':'')+(me.vip===2?'<span class="tag" style="background:#a855f733;color:#a855f7">VIP 2</span>':me.vip===1?'<span class="tag" style="background:#38bdf833;color:#38bdf8">VIP 1</span>':'')+(me.roles||[]).map(r=>'<span class="tag" style="background:#e2c9a622;color:#e2c9a6">'+esc(r)+'</span>').join('');
@@ -225,29 +257,30 @@ function render(){
     if(isCit){
       cit='<div style="color:#34d399;font-size:13px;font-weight:700;margin-bottom:6px">✅ Гражданин ОНТ</div>';
       if(db.chat) cit+='<a href="'+db.chat+'" target="_blank" style="text-decoration:none"><button class="b-gta">💬 Закрытый чат ОНТ</button></a>';
-      
-      // Кнопки Электронного паспорта и Карты бренда Light
       cit += me.hasPass 
         ? '<button class="b-sec" onclick="openPassport()">🪪 Открыть электронный паспорт</button>'
         : '<button class="b-gta" onclick="getPassport()">🪪 Получить электронный паспорт</button>';
-      
       cit += me.hasCard 
         ? '<button class="b-sec" onclick="openLightCard()">💳 Открыть карту бренда Light</button>'
         : '<button class="b-gta" onclick="getLightCard()">💳 Получить карту бренда Light</button>';
     } else if(db.apps&&db.apps[uid]==='p'){
       cit='<div style="color:#e2c9a6;font-size:13px">⏳ Заявка на гражданство на рассмотрении у Райма</div>';
     } else {
-      cit='<button class="b-sec" onclick="applyCit()">🛂 Подать заявку на гражданство</button>';
+      cit='<button class="b-gta" onclick="applyCit()">🛂 Подать заявку на гражданство</button>';
     }
 
     const pv = me.priv || 'all';
-    h='<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><span style="font-size:11px;color:var(--mut)">СТРАНА ОНТ</span>'+flg+'</div>'
+    h='<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><span style="font-size:11px;color:var(--mut)">СТРАНА ОНТ • ID: <b>#'+(me.shortId||1000)+'</b></span>'+flg+'</div>'
     +'<div style="display:flex;gap:12px;align-items:center"><img src="'+(me.photo||'https://placeholder.com')+'" class="ava"><div><div style="font-size:18px;font-weight:800">'+esc(me.nick)+'</div><div style="color:#38bdf8;font-size:13px">'+(me.username!=='-'?'@'+esc(me.username):'Без username')+'</div><div>'+bdg+'</div></div></div>'
     +'<div style="display:flex;justify-content:space-between;margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,.08)"><div><div style="font-size:11px;color:var(--mut)">Баланс</div><div style="font-size:20px;font-weight:800;color:'+(me.bal<0?'#f87171':'#e2c9a6')+'">'+(me.bal||0)+' ß</div></div><div style="text-align:right"><div style="font-size:11px;color:var(--mut)">Battle Pass</div><div style="font-weight:700">Ур. '+(Math.floor((me.xp||0)/100)+1)+' ('+(me.xp||0)+' XP) '+(me.paidBp?'🌟':'')+'</div></div></div><div style="margin-top:10px">'+cit+'</div></div>'
     +'<div class="card"><b>🏅 Мои награды ('+(me.awards||[]).length+')</b><div style="margin-top:6px">'+aw+'</div></div>'
     +'<div class="card"><b>🏠 Имущество</b><div style="margin-top:6px">'+it+'</div></div>'
     +'<div class="card"><b>🔒 Приватность наград и тегов</b><select onchange="db.users[uid].priv=this.value;save();render()"><option value="all" '+(pv==='all'?'selected':'')+'>🌍 Все жители</option><option value="cit" '+(pv==='cit'?'selected':'')+'>🛂 Только граждане и персонал</option><option value="none" '+(pv==='none'?'selected':'')+'>🙈 Никто (только я)</option></select></div>'
-    +'<div class="card"><b>⚙️ Настройки</b><button class="b-gta" onclick="linkTg()">📲 Подключить профиль Telegram</button>'+(me.tgId?'<div style="font-size:12px;color:#34d399;margin-top:6px">✅ Привязан TG ID: '+me.tgId+'</div>':'<div style="font-size:12px;color:var(--mut);margin-top:6px">Профиль Telegram ещё не привязан</div>')+'<button class="b-red" onclick="logout()">🚪 Выйти из аккаунта</button></div>';
+    +'<div class="card"><b>⚙️ Настройки профиля</b>'
+    +'<div style="display:flex;gap:6px;margin-top:6px"><input id="newNickIn" placeholder="Новый ник (1–32 симв.)" style="margin:0"><button class="b-sec b-sm" style="margin:0" onclick="changeNick()">Сменить</button></div>'
+    +'<button class="b-gta" style="margin-top:10px" onclick="linkTg()">📲 Подключить профиль Telegram</button>'
+    +(me.tgId?'<div style="font-size:12px;color:#34d399;margin-top:6px">✅ Привязан TG ID: '+me.tgId+'</div>':'<div style="font-size:12px;color:var(--mut);margin-top:6px">Профиль Telegram ещё не привязан</div>')
+    +'<button class="b-red" onclick="logout()">🚪 Выйти из аккаунта</button></div>';
   }
   if(tab==='fish'){
     const bag = me.fishBag || [];
@@ -265,7 +298,7 @@ function render(){
   if(tab==='ftop'){
     const arr=Object.entries(db.users||{}).sort((a,b)=>(b.fishCoins||0)-(a.fishCoins||0));
     h='<div class="card" style="text-align:center"><b>🐟 Топ рыбаков ОНТ</b><div style="font-size:12px;color:var(--mut)">Рейтинг по валюте Чешуя (🐟)</div></div>'
-    +arr.map(([id,u],i)=>'<div class="card" style="display:flex;justify-content:space-between;align-items:center"><div><b>'+(i===0?'🥇':i===1?'🥈':i===2?'🥉':'#'+(i+1))+' '+esc(u.nick)+'</b><div style="font-size:11px;color:var(--mut)">Удочка Ур. '+(u.rodLvl||1)+' • Поймано: '+(u.fishCaught||0)+'</div></div><b style="color:#38bdf8">'+(u.fishCoins||0)+' 🐟</b></div>').join('');
+    +arr.map(([id,u],i)=>'<div class="card" style="display:flex;justify-content:space-between;align-items:center"><div><b>'+(i===0?'🥇':i===1?'🥈':i===2?'🥉':'#'+(i+1))+' '+esc(u.nick)+'</b> <span style="font-size:11px;color:var(--mut)">#'+(u.shortId||1000)+'</span><div style="font-size:11px;color:var(--mut)">Удочка Ур. '+(u.rodLvl||1)+' • Поймано: '+(u.fishCaught||0)+'</div></div><b style="color:#38bdf8">'+(u.fishCoins||0)+' 🐟</b></div>').join('');
   }
 
   if(tab==='notes'){
@@ -281,7 +314,7 @@ function render(){
     const betaHolders = allUsers.filter(([,u])=>(u.bal||0)!==0).length;
     const sorted = allUsers.sort((a,b)=>(b.bal||0)-(a.bal||0));
     h='<div class="card" style="text-align:center"><div style="font-size:11px;color:var(--mut)">ОБЩАЯ КАЗНА ОНТ</div><div style="font-size:24px;font-weight:900;color:#e2c9a6;margin:4px 0">'+totalBeta+' ß</div><div style="font-size:12px;color:var(--mut)">Жителей: <b>'+allUsers.length+'</b> • С балансом ß: <b>'+betaHolders+'</b></div></div>'
-    +sorted.map(([id,u],i)=>'<div class="card" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="openU(\''+id+'\')"><div><b>'+(i===0?'🥇':i===1?'🥈':i===2?'🥉':'#'+(i+1))+' '+esc(u.nick)+'</b><div style="font-size:11px;color:var(--mut)">Наград: '+(u.awards||[]).length+'</div></div><b style="color:'+(u.bal<0?'#f87171':'#38bdf8')+'">'+(u.bal||0)+' ß</b></div>').join('');
+    +sorted.map(([id,u],i)=>'<div class="card" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="openU(\''+id+'\')"><div><b>'+(i===0?'🥇':i===1?'🥈':i===2?'🥉':'#'+(i+1))+' '+esc(u.nick)+'</b> <span style="font-size:11px;color:var(--mut)">#'+(u.shortId||1000)+'</span><div style="font-size:11px;color:var(--mut)">Наград: '+(u.awards||[]).length+'</div></div><b style="color:'+(u.bal<0?'#f87171':'#38bdf8')+'">'+(u.bal||0)+' ß</b></div>').join('');
   }
 
   if(tab==='news'){
@@ -330,17 +363,22 @@ function render(){
   if((me.roles||[]).length&&!testMode)h+=staffBox(me);
   if(me.isRaim)h+=raimBox();
   document.getElementById('view').innerHTML=h;
+  if(me.isRaim && !testMode) loadPermUI();
 }
-function applyCit(){
-  if(!db.apps)db.apps={};
-  db.apps[uid]='p';
-  save();render();
+function changeNick(){
+  let n = document.getElementById('newNickIn').value.trim();
+  if(n.length<1 || n.length>32) return msg('Ник должен быть от 1 до 32 символов.');
+  if(n.toLowerCase()==='raim' && !db.users[uid].isRaim) n = 'Житель ОНТ';
+  db.users[uid].nick = n;
+  save(); render(); msg('Ник изменён на: ' + n);
 }
+
+function applyCit(){ if(!db.apps)db.apps={}; db.apps[uid]='p'; save(); render(); }
 
 function getPassport(){
   const me = db.users[uid];
   me.hasPass = true;
-  me.passNum = 'ONT-' + Math.floor(100000 + Math.random()*900000);
+  me.passNum = 'ONT-' + (me.shortId || 1000) + '-' + Math.floor(100+Math.random()*900);
   me.passDate = new Date().toLocaleDateString('ru-RU');
   save(); render(); openPassport();
 }
@@ -349,7 +387,7 @@ function openPassport(){
   const me = db.users[uid];
   openM('<div class="doc-card"><div style="font-size:11px;color:#38bdf8;font-weight:800;letter-spacing:1px">ЭЛЕКТРОННЫЙ ПАСПОРТ ГРАЖДАНИНА ОНТ</div>'
   +'<div style="display:flex;gap:12px;align-items:center;margin:12px 0"><img src="'+(me.photo||'https://placeholder.com')+'" class="ava">'
-  +'<div><div style="font-size:17px;font-weight:800">'+esc(me.nick)+'</div><div style="font-size:12px;color:var(--mut)">Номер: <b>'+(me.passNum||'ONT-000001')+'</b></div><div style="font-size:12px;color:var(--mut)">Выдан: '+(me.passDate||new Date().toLocaleDateString('ru-RU'))+'</div></div></div>'
+  +'<div><div style="font-size:17px;font-weight:800">'+esc(me.nick)+'</div><div style="font-size:12px;color:var(--mut)">ID: <b>#'+(me.shortId||1000)+'</b> • № <b>'+(me.passNum||'ONT-001')+'</b></div><div style="font-size:12px;color:var(--mut)">Выдан: '+(me.passDate||new Date().toLocaleDateString('ru-RU'))+'</div></div></div>'
   +'<div style="font-size:11px;color:#34d399;font-weight:700">✅ ДОКУМЕНТ ПОДТВЕРЖДЁН ГОСУДАРСТВОМ ОНТ</div></div>'
   +'<button class="b-sec" style="margin-top:10px" onclick="closeM()">Закрыть</button>');
 }
@@ -357,22 +395,22 @@ function openPassport(){
 function getLightCard(){
   const me = db.users[uid];
   me.hasCard = true;
-  me.cardNum = '4400 ' + Math.floor(1000+Math.random()*9000) + ' ' + Math.floor(1000+Math.random()*9000) + ' ' + Math.floor(1000+Math.random()*9000);
+  me.cardNum = '4400 ' + Math.floor(1000+Math.random()*9000) + ' ' + Math.floor(1000+Math.random()*9000) + ' ' + (me.shortId || 1000);
   save(); render(); openLightCard();
 }
 
 function openLightCard(){
   const me = db.users[uid];
   openM('<div class="light-card"><div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:16px;letter-spacing:1px">LIGHT BANK</b><span style="font-weight:900">ОНТ ß</span></div>'
-  +'<div style="font-size:18px;font-weight:800;letter-spacing:2px;margin:18px 0 12px">'+(me.cardNum||'4400 0000 0000 0001')+'</div>'
-  +'<div style="display:flex;justify-content:space-between;align-items:flex-end"><div><div style="font-size:10px;opacity:.75">ВЛАДЕЛЕЦ</div><div style="font-weight:800;font-size:14px">'+esc(me.nick.toUpperCase())+'</div></div><div style="text-align:right"><div style="font-size:10px;opacity:.75">БАЛАНС</div><div style="font-weight:900;font-size:16px">'+(me.bal||0)+' ß</div></div></div></div>'
+  +'<div style="font-size:18px;font-weight:800;letter-spacing:2px;margin:18px 0 12px">'+(me.cardNum||'4400 0000 0000 1000')+'</div>'
+  +'<div style="display:flex;justify-content:space-between;align-items:flex-end"><div><div style="font-size:10px;opacity:.75">ВЛАДЕЛЕЦ (#'+(me.shortId||1000)+')</div><div style="font-weight:800;font-size:14px">'+esc(me.nick.toUpperCase())+'</div></div><div style="text-align:right"><div style="font-size:10px;opacity:.75">БАЛАНС</div><div style="font-weight:900;font-size:16px">'+(me.bal||0)+' ß</div></div></div></div>'
   +'<button class="b-sec" style="margin-top:10px" onclick="closeM()">Закрыть</button>');
 }
 
 function staffBox(me){
   if(!me.sPass)return'<div class="card" style="border-color:#38bdf8"><b>🔐 Задайте пароль сотрудника</b><input id="sp1" type="password" placeholder="Новый пароль"><button class="b-gta" onclick="setSp()">Сохранить</button></div>';
   if(!staffOk)return'<div class="card" style="border-color:#38bdf8"><b>🔐 Вход в панель персонала</b><input id="sp2" type="password" placeholder="Пароль"><button class="b-gta" onclick="chkSp()">Войти</button></div>';
-  const opts=Object.entries(db.users).filter(([,u])=>!u.isRaim).map(([k,u])=>'<option value="'+k+'">'+esc(u.nick)+'</option>').join('');
+  const opts=Object.entries(db.users).filter(([,u])=>!u.isRaim).map(([k,u])=>'<option value="'+k+'">#'+(u.shortId||1000)+' '+esc(u.nick)+'</option>').join('');
   let s='<div class="card" style="border-color:#38bdf8"><b>🛠 Панель персонала</b>';
   if(hasPerm(me,'award'))s+='<div style="margin-top:8px"><b>🏅 Выдать награду:</b><select id="awU">'+opts+'</select><input id="awE" placeholder="Эмодзи"><input id="awT" placeholder="Название"><input id="awD" placeholder="Описание"><button class="b-gta" onclick="giveAw(\'aw\')">Выдать награду</button></div>';
   if(hasPerm(me,'ban'))s+='<div style="margin-top:8px"><b>🚫 Блокировка:</b><select id="bnU">'+opts+'</select><button class="b-red" onclick="banU()">Блок / Разблок</button></div>';
@@ -381,8 +419,9 @@ function staffBox(me){
 
 function raimBox(){
   if(testMode)return'<div class="card"><button class="b-gta" onclick="testMode=false;render()">👁 Выйти из режима «Тест как игрок»</button></div>';
-  const opts=Object.entries(db.users).map(([k,u])=>'<option value="'+k+'">'+esc(u.nick)+' ('+(u.bal||0)+' ß)</option>').join('');
-  const apps=Object.entries(db.apps||{}).filter(([,v])=>v==='p').map(([k])=>db.users[k]?'<div style="display:flex;justify-content:space-between;align-items:center;margin:5px 0"><span>'+esc(db.users[k].nick)+'</span><div><button class="b-gta b-sm" onclick="appRes(\''+k+'\',1)">✅</button> <button class="b-red b-sm" onclick="appRes(\''+k+'\',0)">❌</button></div></div>':'').join('')||'<div style="font-size:12px;color:var(--mut)">Нет заявок</div>';
+  const opts=Object.entries(db.users).map(([k,u])=>'<option value="'+k+'">#'+(u.shortId||1000)+' '+esc(u.nick)+' ('+(u.bal||0)+' ß)</option>').join('');
+  const nonRaimOpts=Object.entries(db.users).filter(([,u])=>!u.isRaim).map(([k,u])=>'<option value="'+k+'">#'+(u.shortId||1000)+' '+esc(u.nick)+'</option>').join('');
+  const apps=Object.entries(db.apps||{}).filter(([,v])=>v==='p').map(([k])=>db.users[k]?'<div style="display:flex;justify-content:space-between;align-items:center;margin:5px 0"><span>#'+(db.users[k].shortId||1000)+' '+esc(db.users[k].nick)+'</span><div><button class="b-gta b-sm" onclick="appRes(\''+k+'\',1)">✅</button> <button class="b-red b-sm" onclick="appRes(\''+k+'\',0)">❌</button></div></div>':'').join('')||'<div style="font-size:12px;color:var(--mut)">Нет заявок</div>';
   const f=db.flag||{top:'#e2c9a6',mid:'#38bdf8',bot:'#a855f7',icon:'👑'};
   const roleOpts=Object.keys(DEF_PERMS).map(r=>'<option>'+r+'</option>').join('');
 
@@ -394,27 +433,64 @@ function raimBox(){
   +'<div style="margin-top:10px"><b>⚙️ Права ролей:</b><select id="permRole" onchange="loadPermUI()">'+roleOpts+'</select><div id="permChecks"></div><button class="b-sec b-sm" onclick="savePerms()">Сохранить права</button></div>'
   +'<div style="margin-top:10px"><b>🏳️ Флаг ОНТ:</b><div style="display:flex;gap:5px"><input type="color" id="c1" value="'+f.top+'"><input type="color" id="c2" value="'+f.mid+'"><input type="color" id="c3" value="'+f.bot}"><input id="cI" value="'+f.icon+'" style="width:60px"></div><button class="b-sec b-sm" onclick="svF()">Сохранить флаг</button></div>'
   +'<div style="margin-top:10px"><b>🔗 Закрытый чат:</b><input id="chIn" value="'+(db.chat||'')+'" placeholder="https://t.me+..."><div style="display:flex;gap:5px"><button class="b-gta b-sm" onclick="db.chat=document.getElementById(\'chIn\').value.trim();save();render()">Привязать</button><button class="b-red b-sm" onclick="db.chat=\'\';save();render()">Отвязать</button></div></div>'
-  +'<button class="b-sec" style="margin-top:10px" onclick="testMode=true;render()">👁 Тест как игрок</button><button class="b-red" onclick="wipe()">⚠️ Удалить чужие аккаунты</button></div>';
+  +'<div style="margin-top:10px"><b>🗑 Удалить профиль игрока (освободит username):</b><select id="delU">'+nonRaimOpts+'</select><button class="b-red b-sm" onclick="delOneUser()">Удалить выбранный профиль</button></div>'
+  +'<button class="b-sec" style="margin-top:10px" onclick="testMode=true;render()">👁 Тест как игрок</button>'
+  +'<button class="b-sec" onclick="stepDownRaim()">🚪 Покинуть пост Владельца (передать)</button>'
+  +'<button class="b-red" onclick="wipe()">⚠️ Удалить все чужие аккаунты</button></div>';
 }
-function loadPermUI(){
-  const r=document.getElementById('permRole')?.value;if(!r)return;
-  const p=(db.rolePerms&&db.rolePerms[r])||{};
-  document.getElementById('permChecks').innerHTML='<label class="chk-row"><input type="checkbox" id="pNews" '+(p.news?'checked':'')+'> Новости</label><label class="chk-row"><input type="checkbox" id="pBan" '+(p.ban?'checked':'')+'> Блокировки</label><label class="chk-row"><input type="checkbox" id="pAw" '+(p.award?'checked':'')+'> Выдача наград</label><label class="chk-row"><input type="checkbox" id="pBp" '+(p.bp?'checked':'')+'> Заполнение BP</label>';
+function delOneUser(){
+  const k = document.getElementById('delU')?.value;
+  if(!k || !db.users[k] || db.users[k].isRaim) return;
+  delete db.users[k];
+  if(db.apps) delete db.apps[k];
+  save(); render(); msg('Профиль удалён, username освобождён.');
 }
-function savePerms(){const r=document.getElementById('permRole').value;db.rolePerms=db.rolePerms||{};db.rolePerms[r]={news:document.getElementById('pNews').checked,ban:document.getElementById('pBan').checked,award:document.getElementById('pAw').checked,bp:document.getElementById('pBp').checked};save();msg('Права роли сохранены!');}
 
+function stepDownRaim(){
+  db.users[uid].isRaim = false;
+  db.ownerClaimed = false;
+  db.ownerTgId = null;
+  save(); render();
+  msg('Вы покинули пост Владельца. Теперь настоящий Райм может нажать на корону 👑 внизу экрана и ввести ключ у себя.');
+}
+
+function loadPermUI(){
+  const el=document.getElementById('permChecks'), r=document.getElementById('permRole')?.value;
+  if(!el||!r)return;
+  const p=(db.rolePerms&&db.rolePerms[r])||{};
+  el.innerHTML='<label class="chk-row"><input type="checkbox" id="pNews" '+(p.news?'checked':'')+'> Новости</label><label class="chk-row"><input type="checkbox" id="pBan" '+(p.ban?'checked':'')+'> Блокировки</label><label class="chk-row"><input type="checkbox" id="pAw" '+(p.award?'checked':'')+'> Выдача наград</label><label class="chk-row"><input type="checkbox" id="pBp" '+(p.bp?'checked':'')+'> Заполнение BP</label>';
+}
+
+function savePerms(){
+  const r=document.getElementById('permRole').value;
+  db.rolePerms=db.rolePerms||{};
+  db.rolePerms[r]={news:document.getElementById('pNews').checked,ban:document.getElementById('pBan').checked,award:document.getElementById('pAw').checked,bp:document.getElementById('pBp').checked};
+  save(); msg('Права роли сохранены!');
+}
 function linkTg(){
   const u = getTgUser();
-  if(!u) return msg('Не удалось считать данные Telegram. Откройте приложение строго через кнопку внутри бота @Scientistrdonbot.');
-  db.users[uid].tgId = u.id;
-  if(u.photo_url) db.users[uid].photo = u.photo_url;
-  if(u.username && db.users[uid].username === '-') db.users[uid].username = u.username.slice(0, 12);
-  if(db.users[uid].isRaim && !db.ownerClaimed){
-    db.ownerClaimed = true;
-    db.ownerTgId = u.id;
-    msg('Профиль Telegram привязан! Права Владельца Райма навсегда закреплены за вами — секретный ключ больше ни у кого не откроется.');
+  if(u){
+    finishLinkTg(u.id, u.photo_url, u.username);
   } else {
-    msg('Профиль Telegram успешно привязан! (ID: ' + u.id + ')');
+    openM('<h3>📲 Привязка Telegram</h3><p style="font-size:13px;color:var(--mut);margin:6px 0">Введите ваш числовой Telegram ID (узнать можно в @userinfobot):</p><input id="manTgIn" type="number" placeholder="Ваш Telegram ID"><button class="b-gta" onclick="manualLinkTg()">Привязать ID</button><button class="b-sec" onclick="closeM()">Отмена</button>');
+  }
+}
+
+function manualLinkTg(){
+  const val = document.getElementById('manTgIn').value.trim();
+  if(!val || val.length < 5) return;
+  closeM(); finishLinkTg(val, null, null);
+}
+
+function finishLinkTg(tgId, photo, uname){
+  db.users[uid].tgId = tgId;
+  if(photo) db.users[uid].photo = photo;
+  if(uname && db.users[uid].username === '-') db.users[uid].username = uname.slice(0, 12);
+  if(db.users[uid].isRaim && !db.ownerClaimed){
+    db.ownerClaimed = true; db.ownerTgId = tgId;
+    msg('Telegram привязан! Права Владельца Райма навсегда закреплены за вами.');
+  } else {
+    msg('Профиль Telegram привязан! ID: ' + tgId);
   }
   save(); render();
 }
@@ -423,15 +499,29 @@ function goFish(){
   const me=db.users[uid], rLvl=me.rodLvl||1;
   const pool=FISH_DB.map(f=>({...f, w: f.weight * (f.rar==='Обычная'?1 : 1 + (rLvl-1)*0.25)}));
   const tot=pool.reduce((s,f)=>s+f.w,0);
-  let rnd=Math.random()*tot, caught=pool;
+  let rnd=Math.random()*tot, caught=pool[0];
   for(const f of pool){if(rnd<f.w){caught=f;break;}rnd-=f.w;}
-  me.fishBag=me.fishBag||[];me.fishBag.push({name:caught.name,rar:caught.rar,icon:caught.icon,price:caught.price});
-  me.fishCaught=(me.fishCaught||0)+1;save();render();
+  me.fishBag=me.fishBag||[];
+  me.fishBag.push({name:caught.name,rar:caught.rar,icon:caught.icon,price:caught.price});
+  me.fishCaught=(me.fishCaught||0)+1;
+  save(); render();
   msg('Поймана рыба: '+caught.icon+' '+caught.name+' ['+caught.rar+'] ('+caught.price+' 🐟)');
 }
-function sellFish(){const me=db.users[uid],bag=me.fishBag||[];if(!bag.length)return msg('Садок пуст.');const s=bag.reduce((a,b)=>a+b.price,0);me.fishBag=[];me.fishCoins=(me.fishCoins||0)+s;save();render();msg('Улов продан за '+s+' 🐟!');}
-function upgRod(){const me=db.users[uid],lv=me.rodLvl||1,cost=lv*150;if((me.fishCoins||0)<cost)return msg('Недостаточно Чешуи (нужно '+cost+' 🐟)');me.fishCoins-=cost;me.rodLvl=lv+1;save();render();msg('Удочка улучшена до Ур. '+me.rodLvl+'!');}
 
+function sellFish(){
+  const me=db.users[uid], bag=me.fishBag||[];
+  if(!bag.length)return msg('Садок пуст.');
+  const s=bag.reduce((a,b)=>a+b.price,0);
+  me.fishBag=[]; me.fishCoins=(me.fishCoins||0)+s;
+  save(); render(); msg('Улов продан за '+s+' 🐟!');
+}
+
+function upgRod(){
+  const me=db.users[uid], lv=me.rodLvl||1, cost=lv*150;
+  if((me.fishCoins||0)<cost)return msg('Недостаточно Чешуи (нужно '+cost+' 🐟)');
+  me.fishCoins-=cost; me.rodLvl=lv+1;
+  save(); render(); msg('Удочка улучшена до Ур. '+me.rodLvl+'!');
+}
 function addNote(){const t=document.getElementById('ntTxt').value.trim();if(!t)return;db.users[uid].notes=db.users[uid].notes||[];if(db.users[uid].notes.length>=100)return msg('Лимит 100 заметок!');db.users[uid].notes.push({t,d:new Date().toLocaleString('ru-RU')});save();render();}
 function delNote(i){db.users[uid].notes.splice(i,1);save();render();}
 function appRes(k,ok){if(ok){db.apps[k]='ok';db.users[k].cit=true;db.users[k].awards=db.users[k].awards||[];db.users[k].awards.push({e:'🛂',t:'Паспорт ОНТ',d:'Гражданин ОНТ',dt:new Date().toLocaleDateString('ru-RU'),by:'Райм'});}else delete db.apps[k];save();render();}
@@ -448,45 +538,27 @@ function repay(){const me=db.users[uid],d=me.debt||0;if((me.bal||0)<d)return msg
 function addR(){const n=document.getElementById('rN').value.trim(),t=document.getElementById('rT').value.trim();if(n&&t){db.rules.push({n,t});save();render();}}
 function setSp(){const p=document.getElementById('sp1').value.trim();if(p.length>=4){db.users[uid].sPass=p;staffOk=true;save();render();}}
 function chkSp(){if(document.getElementById('sp2').value===db.users[uid].sPass){staffOk=true;render();}else msg('Неверный пароль!');}
-
-function giveAw(pref){
-  const k=document.getElementById(pref+'U').value, e=document.getElementById(pref+'E').value.trim()||'🏅', t=document.getElementById(pref+'T').value.trim(), d=document.getElementById(pref+'D').value.trim();
-  if(!k||!t)return;
-  if(db.users[k].isRaim && !db.users[uid].isRaim)return;
-  db.users[k].awards=db.users[k].awards||[];
-  db.users[k].awards.push({e,t,d,dt:new Date().toLocaleDateString('ru-RU'),by:db.users[uid].nick});
-  save();render();msg('Награда выдана!');
-}
+function giveAw(pref){const k=document.getElementById(pref+'U').value,e=document.getElementById(pref+'E').value.trim()||'🏅',t=document.getElementById(pref+'T').value.trim(),d=document.getElementById(pref+'D').value.trim();if(!k||!t)return;if(db.users[k].isRaim&&!db.users[uid].isRaim)return;db.users[k].awards=db.users[k].awards||[];db.users[k].awards.push({e,t,d,dt:new Date().toLocaleDateString('ru-RU'),by:db.users[uid].nick});save();render();msg('Награда выдана!');}
 function banU(){const k=document.getElementById('bnU').value;if(k&&!db.users[k].isRaim){db.users[k].ban=!db.users[k].ban;save();msg(db.users[k].ban?'Заблокирован.':'Разблокирован.');}}
-function modB(m){
-  const k=document.getElementById('bU').value, a=+document.getElementById('bA').value;
-  if(!k)return;
-  const c=db.users[k].bal||0;
-  if(m===2)db.users[k].bal=0;
-  else if(!isNaN(a))db.users[k].bal=m===1?c+a:m===-1?c-a:a;
-  save();render();
-}
+function modB(m){const k=document.getElementById('bU').value,a=+document.getElementById('bA').value;if(!k)return;const c=db.users[k].bal||0;if(m===2)db.users[k].bal=0;else if(!isNaN(a))db.users[k].bal=m===1?c+a:m===-1?c-a:a;save();render();}
 function modR(g){const k=document.getElementById('rU').value,v=document.getElementById('rS').value,u=db.users[k];if(!u)return;if(v==='VIP1')u.vip=g?1:0;else if(v==='VIP2')u.vip=g?2:0;else if(v==='BP')u.paidBp=!!g;else{u.roles=u.roles||[];if(g&&!u.roles.includes(v))u.roles.push(v);if(!g)u.roles=u.roles.filter(r=>r!==v);}save();render();}
 function rstSp(){const k=document.getElementById('rU').value;if(db.users[k]){delete db.users[k].sPass;save();msg('Пароль сброшен.');}}
 function svF(){db.flag={top:document.getElementById('c1').value,mid:document.getElementById('c2').value,bot:document.getElementById('c3').value,icon:document.getElementById('cI').value.trim()||'👑'};save();render();}
 function wipe(){Object.keys(db.users).forEach(k=>{if(!db.users[k].isRaim)delete db.users[k];});db.apps={};save();render();msg('Аккаунты удалены.');}
-
 function openU(k){
   const u=db.users[k], me=db.users[uid];if(!u)return;
   const pv=u.priv||'all';
   const canSee = k===uid || me.isRaim || pv==='all' || (pv==='cit' && (me.cit || (me.roles||[]).length>0));
   const rolesHtml = canSee ? esc((u.roles||[]).join(', ')||'Житель') : '<i>Скрыто настройками приватности</i>';
   const awHtml = !canSee ? '<i>Скрыто настройками приватности</i>' : ((u.awards||[]).map((a,i)=>'<span class="pill" onclick="showAw(\''+k+'\','+i+')">'+a.e+' '+esc(a.t)+'</span>').join('')||'Нет');
-  openM('<div style="text-align:center"><img src="'+(u.photo||'https://placeholder.com')+'" class="ava"><h3>'+esc(u.nick)+'</h3><div style="color:#38bdf8;font-size:13px">'+(u.username!=='-'?'@'+esc(u.username):'')+'</div></div><div style="margin-top:10px;font-size:13px;line-height:1.7"><b>Баланс:</b> '+(u.bal||0)+' ß<br><b>Чешуя:</b> '+(u.fishCoins||0)+' 🐟<br><b>VIP:</b> '+(u.vip?'VIP '+u.vip:'Нет')+'<br><b>Роли и теги:</b> '+rolesHtml+'<br><b>Имущество:</b> '+((u.items||[]).map(x=>x.e+' '+esc(x.n)).join(', ')||'Нет')+'<br><b>Награды ('+(u.awards||[]).length+'):</b><br>'+awHtml+'</div><button class="b-sec" onclick="closeM()">Закрыть</button>');
+  openM('<div style="text-align:center"><img src="'+(u.photo||'https://placeholder.com')+'" class="ava"><h3>'+esc(u.nick)+' <span style="font-size:12px;color:var(--mut)">#'+(u.shortId||1000)+'</span></h3><div style="color:#38bdf8;font-size:13px">'+(u.username!=='-'?'@'+esc(u.username):'')+'</div></div><div style="margin-top:10px;font-size:13px;line-height:1.7"><b>Баланс:</b> '+(u.bal||0)+' ß<br><b>Чешуя:</b> '+(u.fishCoins||0)+' 🐟<br><b>VIP:</b> '+(u.vip?'VIP '+u.vip:'Нет')+'<br><b>Роли и теги:</b> '+rolesHtml+'<br><b>Имущество:</b> '+((u.items||[]).map(x=>x.e+' '+esc(x.n)).join(', ')||'Нет')+'<br><b>Награды ('+(u.awards||[]).length+'):</b><br>'+awHtml+'</div><button class="b-sec" onclick="closeM()">Закрыть</button>');
 }
+
 function showAw(k,i){const a=db.users[k]?.awards?.[i];if(a)openM('<div style="text-align:center;font-size:36px">'+a.e+'</div><h3 style="text-align:center">'+esc(a.t)+'</h3><p style="margin:8px 0;font-size:14px">'+esc(a.d||'')+'</p><div style="font-size:12px;color:var(--mut)">Выдал: '+esc(a.by)+' • '+a.dt+'</div><button class="b-sec" onclick="closeM()">Закрыть</button>');}
 function msg(t){openM('<p style="text-align:center;margin:10px 0">'+esc(t)+'</p><button class="b-gta" onclick="closeM()">ОК</button>');}
 function openM(h){document.getElementById('modIn').innerHTML=h;document.getElementById('mod').style.display='flex';}
 function closeM(){document.getElementById('mod').style.display='none';}
 function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-
-const origRender = render;
-render = function(){ origRender(); if(db.users[uid]?.isRaim && !testMode) loadPermUI(); };
 
 if(uid)boot();
 </script>
