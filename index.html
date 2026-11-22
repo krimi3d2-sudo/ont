@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>ОНТ RP</title>
+<title>ОНТ</title>
 <script src="https://telegram.org"></script>
 <style>
 :root{--bg:#0f172a;--card:#1e293b;--txt:#f8fafc;--mut:#94a3b8;--grad:linear-gradient(135deg,#e2c9a6,#38bdf8,#a855f7)}
@@ -216,18 +216,19 @@ function staffBox(me){
 }
 
 function raimBox(){
-  if(testMode)return'<div class="card"><button class="b-gta" onclick="testMode=false;render()">👁 Выйти из режима «Тест как игрок»</button></div>';
-  const opts=Object.entries(db.users).map(([k,u])=>'<option value="'+k+'">'+esc(u.nick)+' ('+(u.bal||0)+' ß)</option>').join('');
-  const apps=Object.entries(db.apps||{}).filter(([,v])=>v==='p').map(([k])=>db.users[k]?'<div style="display:flex;justify-content:space-between;align-items:center;margin:5px 0"><span>'+esc(db.users[k].nick)+'</span><div><button class="b-gta b-sm" onclick="appRes(\''+k+'\',1)">✅</button> <button class="b-red b-sm" onclick="appRes(\''+k+'\',0)">❌</button></div></div>':'').join('')||'<div style="font-size:12px;color:var(--mut)">Нет заявок</div>';
+  if(testMode)return`<div class="card"><button class="b-gta" onclick="testMode=false;render()">👁 Выйти из режима «Тест как игрок»</button></div>`;
+  const opts=Object.entries(db.users).map(([k,u])=>`<option value="${k}">${esc(u.nick)} (${u.bal||0} ß)</option>`).join('');
+  const apps=Object.entries(db.apps||{}).filter(([,v])=>v==='p').map(([k])=>db.users[k]?`<div style="display:flex;justify-content:space-between;align-items:center;margin:5px 0"><span>${esc(db.users[k].nick)}</span><div><button class="b-gta b-sm" onclick="appRes('${k}',1)">✅</button> <button class="b-red b-sm" onclick="appRes('${k}',0)">❌</button></div></div>`:'').join('')||'<div style="font-size:12px;color:var(--mut)">Нет заявок</div>';
   const f=db.flag||{top:'#e2c9a6',mid:'#38bdf8',bot:'#a855f7',icon:'👑'};
-  return'<div class="card" style="border:2px solid #a855f7"><b style="color:#e2c9a6">👑 Панель Владельца (Райм)</b>'
-  +'<div style="margin-top:8px"><b>🛂 Заявки на гражданство:</b>'+apps+'</div>'
-  +'<div style="margin-top:10px"><b>💰 Баланс (ß):</b><select id="bU">'+opts+'</select><input id="bA" type="number" placeholder="Сумма"><div style="display:flex;gap:5px"><button class="b-gta b-sm" onclick="modB(1)">+ Выдать</button><button class="b-red b-sm" onclick="modB(-1)">- Забрать</button><button class="b-sec b-sm" onclick="modB(0)">= Задать</button></div></div>'
-  +'<div style="margin-top:10px"><b>🎭 Роли / VIP / BP:</b><select id="rU">'+opts+'</select><select id="rS"><option value="VIP1">VIP 1</option><option value="VIP2">VIP 2</option><option value="BP">Платный BP</option><option>Заполнитель Battle Pass</option><option>Санитар Наград</option><option>Младший модератор</option><option>Старший модератор</option><option>Младший администратор</option><option>Администратор</option><option>Старший администратор</option></select><div style="display:flex;gap:5px"><button class="b-gta b-sm" onclick="modR(1)">Выдать</button><button class="b-red b-sm" onclick="modR(0)">Снять</button><button class="b-sec b-sm" onclick="rstSp()">Сброс пароля</button></div></div>'
-  +'<div style="margin-top:10px"><b>🏳️ Флаг ОНТ:</b><div style="display:flex;gap:5px"><input type="color" id="c1" value="'+f.top+'"><input type="color" id="c2" value="'+f.mid+'"><input type="color" id="c3" value="'+f.bot+'"><input id="cI" value="'+f.icon+'" style="width:60px"></div><button class="b-sec b-sm" onclick="svF()">Сохранить флаг</button></div>'
-  +'<div style="margin-top:10px"><b>🔗 Закрытый чат:</b><input id="chIn" value="'+(db.chat||'')+'" placeholder="https://t.me+..."><div style="display:flex;gap:5px"><button class="b-gta b-sm" onclick="db.chat=document.getElementById(\'chIn\').value.trim();save();render()">Привязать</button><button class="b-red b-sm" onclick="db.chat=\'\';save();render()">Отвязать</button></div></div>'
-  +'<button class="b-sec" style="margin-top:10px" onclick="testMode=true;render()">👁 Тест как игрок</button><button class="b-red" onclick="wipe()">⚠️ Удалить чужие аккаунты</button></div>';
+  return`<div class="card" style="border:2px solid #a855f7"><b style="color:#e2c9a6">👑 Панель Владельца (Райм)</b>
+  <div style="margin-top:8px"><b>🛂 Заявки на гражданство:</b>${apps}</div>
+  <div style="margin-top:10px"><b>💰 Баланс (ß):</b><select id="bU">${opts}</select><input id="bA" type="number" placeholder="Сумма"><div style="display:flex;gap:5px"><button class="b-gta b-sm" onclick="modB(1)">+ Выдать</button><button class="b-red b-sm" onclick="modB(-1)">- Забрать</button><button class="b-sec b-sm" onclick="modB(0)">= Задать</button></div></div>
+  <div style="margin-top:10px"><b>🎭 Роли / VIP / BP:</b><select id="rU">${opts}</select><select id="rS"><option value="VIP1">VIP 1</option><option value="VIP2">VIP 2</option><option value="BP">Платный BP</option><option>Заполнитель Battle Pass</option><option>Санитар Наград</option><option>Младший модератор</option><option>Старший модератор</option><option>Младший администратор</option><option>Администратор</option><option>Старший администратор</option></select><div style="display:flex;gap:5px"><button class="b-gta b-sm" onclick="modR(1)">Выдать</button><button class="b-red b-sm" onclick="modR(0)">Снять</button><button class="b-sec b-sm" onclick="rstSp()">Сброс пароля</button></div></div>
+  <div style="margin-top:10px"><b>🏳️ Флаг ОНТ:</b><div style="display:flex;gap:5px"><input type="color" id="c1" value="${f.top}"><input type="color" id="c2" value="${f.mid}"><input type="color" id="c3" value="${f.bot}"><input id="cI" value="${f.icon}" style="width:60px"></div><button class="b-sec b-sm" onclick="svF()">Сохранить флаг</button></div>
+  <div style="margin-top:10px"><b>🔗 Закрытый чат:</b><input id="chIn" value="${db.chat||''}" placeholder="https://t.me+..."><div style="display:flex;gap:5px"><button class="b-gta b-sm" onclick="db.chat=document.getElementById('chIn').value.trim();save();render()">Привязать</button><button class="b-red b-sm" onclick="db.chat='';save();render()">Отвязать</button></div></div>
+  <button class="b-sec" style="margin-top:10px" onclick="testMode=true;render()">👁 Тест как игрок</button><button class="b-red" onclick="wipe()">⚠️ Удалить чужие аккаунты</button></div>`;
 }
+
 function linkTg(){const u=window.Telegram?.WebApp?.initDataUnsafe?.user;if(!u)return msg('Откройте в Telegram.');db.users[uid].tgId=u.id;if(u.photo_url)db.users[uid].photo=u.photo_url;if(u.username&&db.users[uid].username==='-')db.users[uid].username=u.username.slice(0,12);save();render();}
 function appRes(k,ok){if(ok){db.apps[k]='ok';db.users[k].cit=true;db.users[k].awards=db.users[k].awards||[];db.users[k].awards.push({e:'🛂',t:'Паспорт ОНТ',d:'Гражданин ОНТ',dt:new Date().toLocaleDateString('ru-RU'),by:'Райм'});}else delete db.apps[k];save();render();}
 function addN(){const t=document.getElementById('nT').value.trim(),b=document.getElementById('nB').value.trim();if(t&&b){db.news.push({t,b,a:db.users[uid].nick,d:new Date().toLocaleString('ru-RU')});save();render();}}
