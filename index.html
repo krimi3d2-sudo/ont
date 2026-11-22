@@ -1,0 +1,1201 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ОНТ RP — Telegram Mini App</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link href="https://googleapis.com" rel="stylesheet">
+<style>
+  :root {
+    --bg-dark: #0f172a;
+    --bg-card: #1e293b;
+    --bg-input: #0b1120;
+    --gta-grad: linear-gradient(135deg, #f3d5b5 0%, #38bdf8 50%, #a855f7 100%);
+    --gta-glow: 0 0 18px rgba(168, 85, 247, 0.35), 0 0 8px rgba(56, 189, 248, 0.25);
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+    --danger: #ef4444;
+    --success: #10b981;
+    --vip1: #38bdf8;
+    --vip2: #c084fc;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    background-color: var(--bg-dark);
+    color: var(--text-main);
+    font-family: 'Montserrat', sans-serif;
+    min-height: 100vh;
+    padding-bottom: 85px;
+    overflow-x: hidden;
+    background-image: 
+      radial-gradient(circle at 10% 10%, rgba(243, 213, 181, 0.08), transparent 35%),
+      radial-gradient(circle at 90% 20%, rgba(56, 189, 248, 0.12), transparent 40%),
+      radial-gradient(circle at 50% 90%, rgba(168, 85, 247, 0.14), transparent 45%);
+  }
+
+  /* Типографика в стиле GTA 6 */
+  .gta-title {
+    font-weight: 900;
+    font-style: italic;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    background: var(--gta-grad);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 4px 20px rgba(168, 85, 247, 0.25);
+  }
+
+  .card {
+    background: var(--bg-card);
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card-gta-border {
+    border: 1px solid transparent;
+    background: linear-gradient(var(--bg-card), var(--bg-card)) padding-box,
+                var(--gta-grad) border-box;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    padding: 12px 16px;
+    border: none;
+    border-radius: 12px;
+    font-family: inherit;
+    font-weight: 800;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: transform 0.15s, opacity 0.15s;
+    color: #0f172a;
+    background: var(--gta-grad);
+    box-shadow: var(--gta-glow);
+  }
+
+  .btn:active { transform: scale(0.97); }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .btn-secondary {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-main);
+    box-shadow: none;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+  }
+
+  .btn-danger {
+    background: linear-gradient(135deg, #f87171, #dc2626);
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(220, 38, 38, 0.35);
+  }
+
+  .btn-sm {
+    padding: 8px 12px;
+    font-size: 11px;
+    border-radius: 9px;
+    width: auto;
+  }
+
+  input, select, textarea {
+    width: 100%;
+    background: var(--bg-input);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 11px;
+    padding: 12px 14px;
+    color: var(--text-main);
+    font-family: inherit;
+    font-size: 14px;
+    margin-bottom: 10px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  input:focus, select:focus, textarea:focus {
+    border-color: #38bdf8;
+  }
+
+  label {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 5px;
+    letter-spacing: 0.5px;
+  }
+
+  .error-text {
+    color: var(--danger);
+    font-size: 12px;
+    font-weight: 700;
+    margin-bottom: 10px;
+    min-height: 16px;
+    text-align: center;
+  }
+
+  .container {
+    max-width: 500px;
+    margin: 0 auto;
+    padding: 14px;
+  }
+
+  /* Флаг государства ОНТ */
+  .flag-banner {
+    width: 100%;
+    height: 54px;
+    border-radius: 12px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    margin-bottom: 12px;
+    border: 1px solid rgba(255,255,255,0.18);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+  }
+  .flag-stripe { flex: 1; width: 100%; }
+  .flag-emblem {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.7));
+  }
+
+  /* Бейджи и роли */
+  .badge {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    margin: 2px 3px 2px 0;
+    background: rgba(255,255,255,0.1);
+    color: #fff;
+  }
+  .badge-owner { background: var(--gta-grad); color: #0f172a; }
+  .badge-citizen { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid #10b981; }
+  .badge-guest { background: rgba(148, 163, 184, 0.2); color: #cbd5e1; }
+  .badge-vip1 { background: rgba(56, 189, 248, 0.2); color: var(--vip1); border: 1px solid var(--vip1); }
+  .badge-vip2 { background: rgba(192, 132, 252, 0.2); color: var(--vip2); border: 1px solid var(--vip2); }
+  .badge-staff { background: rgba(243, 213, 181, 0.18); color: #f3d5b5; border: 1px solid #f3d5b5; }
+
+  /* Навигация */
+  .nav-tabs {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    padding-bottom: 8px;
+    margin-bottom: 12px;
+    scrollbar-width: none;
+  }
+  .nav-tabs::-webkit-scrollbar { display: none; }
+
+  .tab-btn {
+    flex: 0 0 auto;
+    padding: 9px 14px;
+    border-radius: 10px;
+    background: var(--bg-card);
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 700;
+    border: 1px solid rgba(255,255,255,0.06);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .tab-btn.active {
+    background: var(--gta-grad);
+    color: #0f172a;
+    font-weight: 900;
+    border: none;
+    box-shadow: var(--gta-glow);
+  }
+
+  /* Аватарки */
+  .avatar {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: var(--gta-grad);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    font-size: 22px;
+    color: #0f172a;
+    flex-shrink: 0;
+    border: 2px solid #38bdf8;
+  }
+
+  /* Сетка наград и имущества */
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .item-chip {
+    background: rgba(15, 23, 42, 0.7);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px;
+    padding: 10px;
+    text-align: center;
+    cursor: pointer;
+  }
+
+  /* Модальные окна */
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(5px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 16px;
+  }
+  .modal-backdrop.open { display: flex; }
+  .modal-box {
+    background: var(--bg-card);
+    border-radius: 18px;
+    padding: 18px;
+    width: 100%;
+    max-width: 440px;
+    max-height: 85vh;
+    overflow-y: auto;
+    border: 1px solid rgba(255,255,255,0.15);
+  }
+
+  /* Плавающая кнопка выхода внизу */
+  .bottom-logout {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(15, 23, 42, 0.94);
+    backdrop-filter: blur(10px);
+    padding: 10px 16px;
+    border-top: 1px solid rgba(255,255,255,0.08);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 900;
+  }
+
+  .hidden { display: none !important; }
+  .sync-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #10b981; display: inline-block; margin-right: 5px;
+  }
+</style>
+</head>
+<body>
+
+<!-- ЭКРАН АВТОРИЗАЦИИ / РЕГИСТРАЦИИ -->
+<div id="authScreen" class="container">
+  <div style="text-align:center; margin: 24px 0 18px;">
+    <div style="font-size: 11px; font-weight: 800; letter-spacing: 2px; color: #f3d5b5;">ROLEPLAY STATE</div>
+    <h1 class="gta-title" style="font-size: 36px;">СТРАНА ОНТ</h1>
+    <div style="font-size: 12px; color: var(--text-muted);">@Scientistrdonbot</div>
+  </div>
+
+  <div class="card card-gta-border">
+    <div style="display:flex; gap:8px; margin-bottom:14px;">
+      <button id="modeLoginBtn" class="btn btn-sm" style="flex:1;" onclick="setAuthMode('login')">Вход</button>
+      <button id="modeRegBtn" class="btn btn-sm btn-secondary" style="flex:1;" onclick="setAuthMode('register')">Регистрация</button>
+    </div>
+
+    <div id="nickFieldWrap" class="hidden">
+      <label>Ник (1–32 символа)</label>
+      <input type="text" id="authNick" maxlength="32" autocomplete="off" placeholder="Ваш игровой ник">
+    </div>
+
+    <label>Username (до 12 символов без @, или «-»)</label>
+    <input type="text" id="authUsername" maxlength="13" autocomplete="off" placeholder="username или -">
+
+    <label>Пароль (строго 8–15 символов)</label>
+    <input type="password" id="authPassword" maxlength="15" autocomplete="new-password" placeholder="••••••••">
+
+    <div id="authError" class="error-text"></div>
+
+    <button id="authSubmitBtn" class="btn" onclick="handleAuth()">Войти в ОНТ</button>
+  </div>
+
+  <div style="text-align:center; font-size:11px; color:var(--text-muted); margin-top:12px;">
+    <span class="sync-dot"></span>Облачная синхронизация Firebase активна
+  </div>
+</div>
+
+<!-- ОСНОВНОЙ ИНТЕРФЕЙС ПРИЛОЖЕНИЯ -->
+<div id="appScreen" class="container hidden">
+  <!-- Баннер режима тестирования владельца -->
+  <div id="testModeBanner" class="card hidden" style="background: linear-gradient(90deg, #9333ea, #0284c7); padding: 10px 14px; display:flex; justify-content:space-between; align-items:center;">
+    <span style="font-size:12px; font-weight:800;">👁 Режим «Тест как игрок»</span>
+    <button class="btn btn-sm" style="background:#fff; color:#0f172a;" onclick="toggleTestMode()">Вернуться</button>
+  </div>
+
+  <!-- Шапка с государственным флагом ОНТ -->
+  <div class="flag-banner" id="stateFlagBanner">
+    <div class="flag-stripe" id="flagTop"></div>
+    <div class="flag-stripe" id="flagMid"></div>
+    <div class="flag-stripe" id="flagBot"></div>
+    <div class="flag-emblem" id="flagEmblem">🦅</div>
+  </div>
+
+  <!-- Навигация по разделам -->
+  <div class="nav-tabs" id="navTabs">
+    <button class="tab-btn active" data-tab="profile" onclick="switchTab('profile')">👤 Профиль</button>
+    <button class="tab-btn" data-tab="news" onclick="switchTab('news')">📰 Новости</button>
+    <button class="tab-btn" data-tab="events" onclick="switchTab('events')">🎉 Эвенты</button>
+    <button class="tab-btn" data-tab="rules" onclick="switchTab('rules')">📜 Правила</button>
+    <button class="tab-btn" data-tab="market" onclick="switchTab('market')">🏎 Рынок</button>
+    <button class="tab-btn" data-tab="bp" onclick="switchTab('bp')">🎖 Battle Pass</button>
+    <button class="tab-btn" data-tab="mine" onclick="switchTab('mine')">⛏ Шахта</button>
+    <button class="tab-btn" data-tab="bank" onclick="switchTab('bank')">🏦 Кредиты</button>
+    <button class="tab-btn" data-tab="top" onclick="switchTab('top')">🏆 Топ</button>
+    <button class="tab-btn" data-tab="roles" onclick="switchTab('roles')">🛡 Роли</button>
+    <button class="tab-btn hidden" id="staffTabBtn" data-tab="staff" onclick="switchTab('staff')">🛠 Персонал</button>
+    <button class="tab-btn hidden" id="ownerTabBtn" data-tab="owner" onclick="switchTab('owner')">👑 Владелец</button>
+  </div>
+
+  <!-- ДИНАМИЧЕСКИЙ КОНТЕНТ ВКЛАДОК -->
+  <div id="tabContent"></div>
+</div>
+
+<!-- НИЖНЯЯ ПАНЕЛЬ ВЫХОДА -->
+<div id="bottomBar" class="bottom-logout hidden">
+  <div style="font-size:12px;">
+    <span class="sync-dot"></span><strong id="bottomBalance">0 ß</strong>
+  </div>
+  <button class="btn btn-sm btn-danger" onclick="logout()">Выйти из профиля</button>
+</div>
+
+<!-- МОДАЛЬНОЕ ОКНО: КЛЮЧ ВЛАДЕЛЬЦА (ТРОЙНОЙ ТАП) -->
+<div id="ownerKeyModal" class="modal-backdrop">
+  <div class="modal-box card-gta-border">
+    <h3 class="gta-title" style="margin-bottom:8px;">Доступ Владельца (Райм)</h3>
+    <p style="font-size:12px; color:var(--text-muted); margin-bottom:10px;">Введите 30-значный секретный ключ доступа:</p>
+    <input type="password" id="ownerSecretInput" placeholder="Ключ доступа...">
+    <div id="ownerKeyError" class="error-text"></div>
+    <div style="display:flex; gap:8px;">
+      <button class="btn" onclick="verifyOwnerKey()">Активировать</button>
+      <button class="btn btn-secondary" onclick="closeModal('ownerKeyModal')">Отмена</button>
+    </div>
+  </div>
+</div>
+
+<!-- МОДАЛЬНОЕ ОКНО: ПРОСМОТР ПРОФИЛЯ ЖИТЕЛЯ -->
+<div id="userProfileModal" class="modal-backdrop">
+  <div class="modal-box card-gta-border" id="userProfileModalBody"></div>
+</div>
+
+<!-- МОДАЛЬНОЕ ОКНО: ДЕТАЛИ НАГРАДЫ -->
+<div id="awardModal" class="modal-backdrop">
+  <div class="modal-box card-gta-border" id="awardModalBody"></div>
+</div>
+// --- НАВИГАЦИЯ ---
+const TABS = [
+  { id: 'profile', name: '👤 Профиль' },
+  { id: 'news', name: '📰 Новости' },
+  { id: 'events', name: '🎉 Эвенты' },
+  { id: 'market', name: '🛒 Рынок' },
+  { id: 'bp', name: '🎫 Battle Pass' },
+  { id: 'mine', name: '⛏ Шахта' },
+  { id: 'bank', name: '🏦 Банк' },
+  { id: 'top', name: '🏆 Топ' },
+  { id: 'rules', name: '📜 Правила' },
+  { id: 'roles', name: '🎭 Роли' }
+];
+
+function renderNav() {
+  const nav = document.getElementById('navBar');
+  nav.innerHTML = TABS.map(t => 
+    `<button class="tab-btn ${currentTab === t.id ? 'active' : ''}" onclick="switchTab('${t.id}')">${t.name}</button>`
+  ).join('');
+}
+
+function switchTab(id) {
+  currentTab = id;
+  renderNav();
+  renderMain();
+}
+
+function renderMain() {
+  const me = db.users[currentUser];
+  if (!me) return logout();
+  const isRaim = me.isRaim && !testAsPlayer;
+  const content = document.getElementById('mainContent');
+
+  const f = db.flag || { top: '#e2c9a6', mid: '#38bdf8', bot: '#a855f7', icon: '👑' };
+  const flagHtml = `
+    <div class="flag-box">
+      <div style="background:${f.top}"></div>
+      <div style="background:${f.mid}"></div>
+      <div style="background:${f.bot}"></div>
+      <div class="flag-emblem">${f.icon}</div>
+    </div>`;
+
+  let html = '';
+
+  if (currentTab === 'profile') {
+    const vipBadge = me.vip === 2 ? `<span class="badge badge-vip2">VIP 2</span>` : 
+                     me.vip === 1 ? `<span class="badge badge-vip1">VIP 1</span>` : '';
+    const raimBadge = me.isRaim ? `<span class="badge badge-raim">ВЛАДЕЛЕЦ ОНТ</span>` : '';
+    const staffBadges = (me.roles || []).map(r => `<span class="badge badge-staff">${r}</span>`).join('');
+    
+    const awardsHtml = (me.awards || []).length ? me.awards.map((a, idx) => 
+      `<div class="award-item" onclick="showAwardModal('${currentUser}', ${idx})">${a.emoji} ${a.title}</div>`
+    ).join('') : '<div style="color:var(--muted);font-size:13px;">Наград пока нет</div>';
+
+    const itemsHtml = (me.items || []).length ? me.items.map(it => 
+      `<div class="award-item">${it.emoji} ${it.name}</div>`
+    ).join('') : '<div style="color:var(--muted);font-size:13px;">Имущества пока нет</div>';
+
+    const myApp = db.applications && db.applications[currentUser];
+    let citizenBlock = '';
+    if (me.citizen || me.isRaim) {
+      citizenBlock = `<div class="badge" style="background:#10b98133;color:#34d399;border:1px solid #10b981;">✅ Гражданин ОНТ</div>`;
+      if (db.chatLink) {
+        citizenBlock += `<a href="${db.chatLink}" target="_blank" style="text-decoration:none;"><button class="btn-gta" style="margin-top:8px;">💬 Войти в закрытый чат ОНТ</button></a>`;
+      }
+    } else if (myApp === 'pending') {
+      citizenBlock = `<div style="color:var(--gta-beige);font-size:13px;margin-top:6px;">⏳ Заявка на гражданство на рассмотрении</div>`;
+    } else {
+      citizenBlock = `<button class="btn-secondary" style="margin-top:8px;" onclick="applyCitizenship()">🛂 Подать заявку на гражданство ОНТ</button>`;
+    }
+
+    html = `
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <span style="font-size:12px;color:var(--muted);">ГОСУДАРСТВО ОНТ</span>
+          ${flagHtml}
+        </div>
+        <div style="display:flex;gap:14px;align-items:center;">
+          <img src="${me.photo || 'https://placeholder.com'}" class="avatar">
+          <div>
+            <div style="font-size:18px;font-weight:800;">${esc(me.nick)}</div>
+            <div style="color:var(--gta-blue);font-size:13px;">${me.username !== '-' ? '@' + esc(me.username) : 'Без юзернейма'}</div>
+            <div style="margin-top:4px;">${raimBadge}${vipBadge}${staffBadges}</div>
+          </div>
+        </div>
+        <div style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.08);display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <div style="font-size:12px;color:var(--muted);">Баланс</div>
+            <div style="font-size:22px;font-weight:800;color:var(--gta-beige);">${me.balance || 0} ß</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:12px;color:var(--muted);">Battle Pass</div>
+            <div style="font-size:16px;font-weight:700;">Ур. ${Math.floor((me.xp || 0)/100) + 1} (${me.xp || 0} XP) ${me.paidBp ? '🌟' : ''}</div>
+          </div>
+        </div>
+        <div style="margin-top:12px;">${citizenBlock}</div>
+      </div>
+
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <h3>🏅 Награды</h3>
+          <button class="btn-secondary btn-sm" style="width:auto;" onclick="toggleHideAwards()">
+            ${me.hideAwards ? '👁 Показать всем' : '🙈 Скрыть от всех'}
+          </button>
+        </div>
+        <div>${awardsHtml}</div>
+      </div>
+
+      <div class="card">
+        <h3>🏠 Имущество</h3>
+        <div>${itemsHtml}</div>
+      </div>
+
+      <div class="card">
+        <h3>⚙️ Настройки аккаунта</h3>
+        <button class="btn-secondary" onclick="linkTelegram()" style="margin-bottom:8px;">📲 Подключить профиль Telegram</button>
+        ${me.tgId ? `<div style="font-size:12px;color:#34d399;margin-bottom:8px;">Привязан TG ID: ${me.tgId}</div>` : ''}
+        <button class="btn-danger" onclick="logout()">🚪 Выйти из аккаунта</button>
+      </div>
+    `;
+  }
+  if (currentTab === 'news') {
+    const canPost = isRaim || (me.roles || []).some(r => r.toLowerCase().includes('администратор'));
+    if (canPost) {
+      html += `
+        <div class="card">
+          <h3>✍️ Опубликовать новость</h3>
+          <input id="newsTitle" placeholder="Заголовок новости">
+          <textarea id="newsText" rows="3" placeholder="Текст новости..."></textarea>
+          <button class="btn-gta" onclick="addNews()">Опубликовать</button>
+        </div>`;
+    }
+    const list = (db.news || []).slice().reverse();
+    html += list.length ? list.map(n => `
+      <div class="card">
+        <div style="font-size:16px;font-weight:700;color:var(--gta-blue);">${esc(n.title)}</div>
+        <div style="font-size:14px;margin:8px 0;white-space:pre-wrap;">${esc(n.text)}</div>
+        <div style="font-size:11px;color:var(--muted);">Автор: ${esc(n.author)} • ${n.date}</div>
+      </div>
+    `).join('') : '<div class="card">Новостей пока нет.</div>';
+  }
+
+  if (currentTab === 'events') {
+    if (isRaim) {
+      html += `
+        <div class="card">
+          <h3>📅 Создать эвент</h3>
+          <input id="evTitle" placeholder="Название события">
+          <input id="evTime" placeholder="Дата и время (например: Завтра в 18:00)">
+          <textarea id="evDesc" rows="2" placeholder="Описание эвента..."></textarea>
+          <button class="btn-gta" onclick="addEvent()">Создать эвент</button>
+        </div>`;
+    }
+    const evs = (db.events || []).slice().reverse();
+    html += evs.length ? evs.map((e, i) => {
+      const realIdx = db.events.length - 1 - i;
+      const parts = e.participants || [];
+      const joined = parts.includes(currentUser);
+      return `
+        <div class="card">
+          <div style="font-size:16px;font-weight:700;color:var(--gta-purple);">${esc(e.title)}</div>
+          <div style="font-size:12px;color:var(--gta-beige);margin:4px 0;">⏰ ${esc(e.time)}</div>
+          <div style="font-size:14px;margin:8px 0;">${esc(e.desc)}</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">Участников: ${parts.length}</div>
+          <button class="${joined ? 'btn-secondary' : 'btn-gta'}" onclick="joinEvent(${realIdx})">
+            ${joined ? '✅ Вы участвуете' : '🙋‍♂️ Участвовать'}
+          </button>
+        </div>`;
+    }).join('') : '<div class="card">Активных эвентов нет.</div>';
+  }
+
+  if (currentTab === 'market') {
+    if (isRaim) {
+      html += `
+        <div class="card">
+          <h3>➕ Добавить товар на рынок</h3>
+          <select id="mkCat">
+            <option value="Машина">🚗 Машина</option>
+            <option value="Дом">🏠 Дом</option>
+            <option value="Бизнес">🏢 Бизнес</option>
+            <option value="Другое">📦 Другое</option>
+          </select>
+          <input id="mkEmoji" placeholder="Эмодзи (например: 🏎)">
+          <input id="mkName" placeholder="Название товара">
+          <input id="mkPrice" type="number" placeholder="Цена в ß">
+          <button class="btn-gta" onclick="addMarketItem()">Добавить товар</button>
+        </div>`;
+    }
+    const items = db.market || [];
+    html += items.length ? items.map((it, idx) => `
+      <div class="card" style="display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <span style="font-size:11px;color:var(--gta-blue);">${esc(it.cat)}</span>
+          <div style="font-size:16px;font-weight:700;">${it.emoji} ${esc(it.name)}</div>
+          <div style="color:var(--gta-beige);font-weight:700;">${it.price} ß</div>
+        </div>
+        <button class="btn-gta btn-sm" style="width:auto;" onclick="buyItem(${idx})">Купить</button>
+      </div>
+    `).join('') : '<div class="card">На рынке пока пусто.</div>';
+  }
+
+  if (currentTab === 'bp') {
+    const canEditBp = isRaim || (me.roles || []).includes('Заполнитель Battle Pass');
+    if (canEditBp) {
+      html += `
+        <div class="card">
+          <h3>🎫 Добавить уровень Battle Pass</h3>
+          <input id="bpLvl" type="number" placeholder="Номер уровня (1, 2, 3...)">
+          <input id="bpFree" placeholder="Бесплатная награда (напр. 50 ß или Награда)">
+          <input id="bpPaid" placeholder="Платная награда (напр. 200 ß или @тег)">
+          <button class="btn-gta" onclick="addBpLevel()">Добавить уровень</button>
+        </div>`;
+    }
+    const myLvl = Math.floor((me.xp || 0) / 100) + 1;
+    html += `<div class="card"><b>Ваш уровень BP: ${myLvl}</b> (${me.xp || 0} XP) • Статус: ${me.paidBp ? '🌟 Платный BP' : 'Обычный BP'}</div>`;
+    const levels = (db.bp || []).sort((a,b) => a.lvl - b.lvl);
+    html += levels.length ? levels.map(l => `
+      <div class="card" style="opacity:${myLvl >= l.lvl ? '1' : '0.6'};">
+        <div style="font-weight:800;color:var(--gta-blue);">Уровень ${l.lvl} ${myLvl >= l.lvl ? '✅' : '🔒'}</div>
+        <div style="font-size:13px;margin-top:4px;">🆓 Бесплатно: <b>${esc(l.free)}</b></div>
+        <div style="font-size:13px;color:var(--gta-beige);">🌟 Платно: <b>${esc(l.paid)}</b></div>
+      </div>
+    `).join('') : '<div class="card">Уровни Battle Pass ещё не добавлены.</div>';
+  }
+  if (currentTab === 'mine') {
+    const today = new Date().toISOString().slice(0, 10);
+    const minedToday = me.lastMine === today;
+    const inv = me.ores || { coal: 0, iron: 0, gold: 0, diamond: 0 };
+    html += `
+      <div class="card">
+        <h3>⛏ Шахта ОНТ</h3>
+        <p style="font-size:13px;color:var(--muted);">Добыча 1 раз в день. Даёт руду и XP (VIP 1: +10 XP, VIP 2: +25 XP).</p>
+        <button class="btn-gta" onclick="mineOre()" ${minedToday ? 'disabled style="opacity:0.5;"' : ''}>
+          ${minedToday ? '⏳ Сегодня вы уже копали' : '⛏ Добыть руду'}
+        </button>
+      </div>
+      <div class="card">
+        <h3>🎒 Ваш рюкзак руды</h3>
+        <div style="font-size:14px;line-height:1.8;">
+          🪨 Уголь: <b>${inv.coal || 0}</b> (10 ß/шт)<br>
+          ⛓ Железо: <b>${inv.iron || 0}</b> (25 ß/шт)<br>
+          🪙 Золото: <b>${inv.gold || 0}</b> (50 ß/шт)<br>
+          💎 Алмаз: <b>${inv.diamond || 0}</b> (120 ß/шт)
+        </div>
+        <button class="btn-secondary" style="margin-top:10px;" onclick="sellOres()">💰 Продать всю руду</button>
+      </div>`;
+  }
+
+  if (currentTab === 'bank') {
+    const debt = me.debt || 0;
+    html += `
+      <div class="card">
+        <h3>🏦 Банк ОНТ (Кредиты)</h3>
+        <div style="font-size:14px;margin-bottom:10px;">Максимальный кредит: <b>500 ß</b></div>
+        <div style="font-size:16px;margin-bottom:12px;">Ваш текущий долг: <b style="color:#f87171;">${debt} ß</b></div>
+        <input id="loanAmount" type="number" placeholder="Сумма кредита (до ${500 - debt} ß)">
+        <button class="btn-gta" onclick="takeLoan()" style="margin-bottom:8px;">Взять кредит</button>
+        ${debt > 0 ? `<button class="btn-secondary" onclick="repayLoan()">💸 Погасить весь долг (${debt} ß)</button>` : ''}
+      </div>`;
+  }
+
+  if (currentTab === 'top') {
+    const usersArr = Object.entries(db.users || {});
+    const totalTreasury = usersArr.reduce((sum, [, u]) => sum + (u.balance || 0), 0);
+    usersArr.sort((a, b) => (b[1].balance || 0) - (a[1].balance || 0));
+
+    html += `
+      <div class="card" style="text-align:center;">
+        <div style="font-size:12px;color:var(--muted);">ОБЩАЯ КАЗНА ЖИТЕЛЕЙ ОНТ</div>
+        <div style="font-size:24px;font-weight:800;color:var(--gta-beige);">${totalTreasury} ß</div>
+      </div>`;
+
+    html += usersArr.map(([uid, u], idx) => {
+      const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx + 1}`;
+      return `
+        <div class="card" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="openUserProfile('${uid}')">
+          <div>
+            <b>${medal} ${esc(u.nick)}</b>
+            <div style="font-size:11px;color:var(--muted);">${u.username !== '-' ? '@' + esc(u.username) : ''}</div>
+          </div>
+          <div style="font-weight:800;color:var(--gta-blue);">${u.balance || 0} ß</div>
+        </div>`;
+    }).join('');
+  }
+
+  if (currentTab === 'rules') {
+    if (isRaim) {
+      html += `
+        <div class="card">
+          <h3>📜 Добавить правило</h3>
+          <input id="ruleNum" placeholder="Пункт (например: 1.1)">
+          <textarea id="ruleText" rows="2" placeholder="Текст закона или правила..."></textarea>
+          <button class="btn-gta" onclick="addRule()">Добавить правило</button>
+        </div>`;
+    }
+    const rules = db.rules || [];
+    html += rules.length ? rules.map(r => `
+      <div class="card">
+        <b style="color:var(--gta-beige);">Пункт ${esc(r.num)}</b>
+        <div style="font-size:14px;margin-top:4px;">${esc(r.text)}</div>
+      </div>
+    `).join('') : '<div class="card">Свод правил пока пуст.</div>';
+  }
+
+  if (currentTab === 'roles') {
+    html += `
+      <div class="card">
+        <h3>👑 Система ролей и VIP</h3>
+        <p style="font-size:13px;line-height:1.6;">
+          <b>💎 VIP 1:</b> Голубой бейдж, бонус +10 XP в шахте.<br>
+          <b>🔮 VIP 2:</b> Фиолетовый бейдж, бонус +25 XP в шахте.<br>
+          <b>🎫 Заполнитель Battle Pass:</b> Заполняет бесплатный и платный БП.<br>
+          <b>🏥 Санитар Наград:</b> Выдача наград жителям.<br>
+          <b>🛡 Мл. / Ст. Модератор:</b> Контроль порядка в ОНТ.<br>
+          <b>⚡ Мл. / Обычный / Ст. Администратор:</b> Публикация новостей и блокировка нарушителей.
+        </p>
+      </div>`;
+  }
+
+  if ((me.roles || []).length > 0 && !testAsPlayer) html += renderStaffPanel(me);
+  if (me.isRaim) html += renderRaimPanel(me);
+  content.innerHTML = html;
+}
+
+function renderStaffPanel(me) {
+  if (!me.staffPass) {
+    return `
+      <div class="card" style="border-color:var(--gta-blue);">
+        <h3>🔐 Активация панели персонала</h3>
+        <input id="newStaffPass" type="password" placeholder="Придумайте пароль сотрудника">
+        <button class="btn-gta" onclick="setStaffPass()">Сохранить пароль</button>
+      </div>`;
+  }
+  if (!staffUnlocked) {
+    return `
+      <div class="card" style="border-color:var(--gta-blue);">
+        <h3>🔐 Вход в панель персонала</h3>
+        <input id="checkStaffPass" type="password" placeholder="Ваш пароль сотрудника">
+        <button class="btn-gta" onclick="unlockStaff()">Открыть панель</button>
+      </div>`;
+  }
+
+  const isSanitar = me.roles.includes('Санитар Наград');
+  const isAdmin = me.roles.some(r => r.toLowerCase().includes('администратор'));
+  const usersOpts = Object.entries(db.users).filter(([, u]) => !u.isRaim)
+    .map(([k, u]) => `<option value="${k}">${esc(u.nick)} (@${esc(u.username)})</option>`).join('');
+
+  let pHtml = `<div class="card" style="border-color:var(--gta-blue);"><h3>🛠 Панель персонала</h3>`;
+  if (isSanitar) {
+    pHtml += `
+      <div style="margin-top:10px;">
+        <b>🏅 Выдать награду:</b>
+        <select id="awTarget">${usersOpts}</select>
+        <input id="awEmoji" placeholder="Эмодзи (напр. 🏆)">
+        <input id="awTitle" placeholder="Название награды">
+        <input id="awDesc" placeholder="Описание награды">
+        <button class="btn-gta" onclick="giveAward()">Выдать</button>
+      </div>`;
+  }
+  if (isAdmin) {
+    pHtml += `
+      <div style="margin-top:12px;">
+        <b>🚫 Блокировка нарушителя:</b>
+        <select id="banTarget">${usersOpts}</select>
+        <button class="btn-danger" onclick="toggleBanUser()">Блок / Разблок</button>
+      </div>`;
+  }
+  return pHtml + `</div>`;
+}
+function renderRaimPanel(me) {
+  if (testAsPlayer) {
+    return `
+      <div class="card" style="border-color:var(--gta-purple);text-align:center;">
+        <button class="btn-gta" onclick="toggleTestMode()">👁 Выйти из режима «Тест как игрок»</button>
+      </div>`;
+  }
+
+  const usersOpts = Object.entries(db.users)
+    .map(([k, u]) => `<option value="${k}">${esc(u.nick)} (${u.balance || 0} ß)</option>`).join('');
+
+  const apps = Object.entries(db.applications || {}).filter(([, st]) => st === 'pending');
+  const appsHtml = apps.length ? apps.map(([uid]) => {
+    const u = db.users[uid];
+    if (!u) return '';
+    return `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin:6px 0;background:rgba(0,0,0,0.2);padding:8px;border-radius:8px;">
+        <span>${esc(u.nick)} (@${esc(u.username)})</span>
+        <div style="display:flex;gap:4px;">
+          <button class="btn-gta btn-sm" style="width:auto;" onclick="handleApp('${uid}', true)">✅</button>
+          <button class="btn-danger btn-sm" style="width:auto;" onclick="handleApp('${uid}', false)">❌</button>
+        </div>
+      </div>`;
+  }).join('') : '<div style="font-size:12px;color:var(--muted);">Новых заявок нет</div>';
+
+  const f = db.flag || { top: '#e2c9a6', mid: '#38bdf8', bot: '#a855f7', icon: '👑' };
+
+  return `
+    <div class="card" style="border:2px solid var(--gta-purple);">
+      <h3 style="color:var(--gta-beige);">👑 Панель Владельца ОНТ (Райм)</h3>
+
+      <div style="margin-top:10px;"><b>🛂 Заявки на гражданство:</b>${appsHtml}</div>
+
+      <div style="margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.1);">
+        <b>💰 Управление балансом (ß):</b>
+        <select id="balTarget">${usersOpts}</select>
+        <input id="balAmount" type="number" placeholder="Сумма ß">
+        <div style="display:flex;gap:6px;">
+          <button class="btn-gta btn-sm" onclick="editBalance('add')">+ Выдать</button>
+          <button class="btn-danger btn-sm" onclick="editBalance('sub')">- Забрать</button>
+          <button class="btn-secondary btn-sm" onclick="editBalance('set')">= Задать</button>
+        </div>
+      </div>
+
+      <div style="margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.1);">
+        <b>🎭 Роли, VIP и платный BP:</b>
+        <select id="roleTarget">${usersOpts}</select>
+        <select id="roleSelect">
+          <option value="VIP1">VIP 1 уровня</option>
+          <option value="VIP2">VIP 2 уровня</option>
+          <option value="PAIDBP">Платный Battle Pass</option>
+          <option value="Заполнитель Battle Pass">Заполнитель Battle Pass</option>
+          <option value="Санитар Наград">Санитар Наград</option>
+          <option value="Младший модератор">Младший модератор</option>
+          <option value="Старший модератор">Старший модератор</option>
+          <option value="Младший администратор">Младший администратор</option>
+          <option value="Администратор">Администратор</option>
+          <option value="Старший администратор">Старший администратор</option>
+        </select>
+        <div style="display:flex;gap:6px;">
+          <button class="btn-gta btn-sm" onclick="toggleRole(true)">Выдать</button>
+          <button class="btn-danger btn-sm" onclick="toggleRole(false)">Снять</button>
+          <button class="btn-secondary btn-sm" onclick="resetStaffPass()">Сброс пароля</button>
+        </div>
+      </div>
+
+      <div style="margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.1);">
+        <b>🏳️ Конструктор флага ОНТ:</b>
+        <div style="display:flex;gap:6px;margin:6px 0;">
+          <input type="color" id="fTop" value="${f.top}" style="height:40px;padding:2px;">
+          <input type="color" id="fMid" value="${f.mid}" style="height:40px;padding:2px;">
+          <input type="color" id="fBot" value="${f.bot}" style="height:40px;padding:2px;">
+          <input id="fIcon" value="${f.icon}" placeholder="Герб" style="width:70px;text-align:center;">
+        </div>
+        <button class="btn-secondary btn-sm" onclick="saveFlag()">Сохранить флаг</button>
+      </div>
+
+      <div style="margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.1);">
+        <b>🔗 Закрытый чат ОНТ:</b>
+        <input id="chatUrlInput" value="${db.chatLink || ''}" placeholder="https://t.me+...">
+        <div style="display:flex;gap:6px;">
+          <button class="btn-gta btn-sm" onclick="saveChatLink(true)">Привязать</button>
+          <button class="btn-danger btn-sm" onclick="saveChatLink(false)">Отвязать</button>
+        </div>
+      </div>
+
+      <div style="margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.1);display:flex;flex-direction:column;gap:8px;">
+        <button class="btn-secondary" onclick="toggleTestMode()">👁 Режим «Тест как игрок»</button>
+        <button class="btn-danger" onclick="wipeOtherUsers()">⚠️ Удалить чужие аккаунты</button>
+      </div>
+    </div>`;
+}
+
+function linkTelegram() {
+  if (window.Telegram && Telegram.WebApp && Telegram.WebApp.initDataUnsafe && Telegram.WebApp.initDataUnsafe.user) {
+    const tg = Telegram.WebApp.initDataUnsafe.user;
+    db.users[currentUser].tgId = tg.id;
+    if (tg.photo_url) db.users[currentUser].photo = tg.photo_url;
+    if (tg.username && db.users[currentUser].username === '-') {
+      db.users[currentUser].username = tg.username.slice(0, 12);
+    }
+    saveDB();
+    renderMain();
+  } else {
+    showNotice('Откройте приложение внутри Telegram для привязки профиля.');
+  }
+}
+
+function applyCitizenship() {
+  if (!db.applications) db.applications = {};
+  db.applications[currentUser] = 'pending';
+  saveDB();
+  renderMain();
+}
+
+function handleApp(uid, approve) {
+  if (!db.users[uid]) return;
+  if (approve) {
+    db.applications[uid] = 'approved';
+    db.users[uid].citizen = true;
+    if (!db.users[uid].awards) db.users[uid].awards = [];
+    db.users[uid].awards.push({
+      emoji: '🛂', title: 'Паспорт ОНТ',
+      desc: 'Официальный документ гражданина страны ОНТ',
+      date: new Date().toLocaleDateString('ru-RU'), by: 'Райм'
+    });
+  } else {
+    delete db.applications[uid];
+  }
+  saveDB();
+  renderMain();
+}
+function toggleHideAwards() {
+  db.users[currentUser].hideAwards = !db.users[currentUser].hideAwards;
+  saveDB();
+  renderMain();
+}
+
+function addNews() {
+  const title = document.getElementById('newsTitle').value.trim();
+  const text = document.getElementById('newsText').value.trim();
+  if (!title || !text) return;
+  if (!db.news) db.news = [];
+  db.news.push({ title, text, author: db.users[currentUser].nick, date: new Date().toLocaleString('ru-RU') });
+  saveDB();
+  renderMain();
+}
+
+function addEvent() {
+  const title = document.getElementById('evTitle').value.trim();
+  const time = document.getElementById('evTime').value.trim();
+  const desc = document.getElementById('evDesc').value.trim();
+  if (!title || !time) return;
+  if (!db.events) db.events = [];
+  db.events.push({ title, time, desc, participants: [] });
+  saveDB();
+  renderMain();
+}
+
+function joinEvent(idx) {
+  const ev = db.events[idx];
+  if (!ev) return;
+  if (!ev.participants) ev.participants = [];
+  if (!ev.participants.includes(currentUser)) {
+    ev.participants.push(currentUser);
+    saveDB();
+    renderMain();
+  }
+}
+
+function addMarketItem() {
+  const cat = document.getElementById('mkCat').value;
+  const emoji = document.getElementById('mkEmoji').value.trim() || '📦';
+  const name = document.getElementById('mkName').value.trim();
+  const price = parseInt(document.getElementById('mkPrice').value, 10);
+  if (!name || isNaN(price) || price < 0) return;
+  if (!db.market) db.market = [];
+  db.market.push({ cat, emoji, name, price });
+  saveDB();
+  renderMain();
+}
+
+function buyItem(idx) {
+  const item = db.market[idx];
+  const me = db.users[currentUser];
+  if (!item || (me.balance || 0) < item.price) return showNotice('Недостаточно ß на балансе!');
+  me.balance -= item.price;
+  if (!me.items) me.items = [];
+  me.items.push(item);
+  saveDB();
+  renderMain();
+  showNotice(`Вы купили: ${item.emoji} ${item.name}`);
+}
+
+function addBpLevel() {
+  const lvl = parseInt(document.getElementById('bpLvl').value, 10);
+  const free = document.getElementById('bpFree').value.trim();
+  const paid = document.getElementById('bpPaid').value.trim();
+  if (!lvl || !free) return;
+  if (!db.bp) db.bp = [];
+  db.bp.push({ lvl, free, paid: paid || '—' });
+  saveDB();
+  renderMain();
+}
+
+function mineOre() {
+  const me = db.users[currentUser];
+  const today = new Date().toISOString().slice(0, 10);
+  if (me.lastMine === today) return;
+  const r = Math.random();
+  let oreKey = 'coal', oreName = '🪨 Уголь';
+  if (r > 0.92) { oreKey = 'diamond'; oreName = '💎 Алмаз'; }
+  else if (r > 0.75) { oreKey = 'gold'; oreName = '🪙 Золото'; }
+  else if (r > 0.45) { oreKey = 'iron'; oreName = '⛓ Железо'; }
+  if (!me.ores) me.ores = { coal: 0, iron: 0, gold: 0, diamond: 0 };
+  me.ores[oreKey] = (me.ores[oreKey] || 0) + 1;
+  const gainedXp = 20 + (me.vip === 2 ? 25 : me.vip === 1 ? 10 : 0);
+  me.xp = (me.xp || 0) + gainedXp;
+  me.lastMine = today;
+  saveDB();
+  renderMain();
+  showNotice(`Добыто: ${oreName} и +${gainedXp} XP!`);
+}
+
+function sellOres() {
+  const me = db.users[currentUser];
+  const inv = me.ores || {};
+  const total = (inv.coal || 0) * 10 + (inv.iron || 0) * 25 + (inv.gold || 0) * 50 + (inv.diamond || 0) * 120;
+  if (total <= 0) return showNotice('В рюкзаке нет руды.');
+  me.ores = { coal: 0, iron: 0, gold: 0, diamond: 0 };
+  me.balance = (me.balance || 0) + total;
+  saveDB();
+  renderMain();
+  showNotice(`Продано за ${total} ß!`);
+}
+
+function takeLoan() {
+  const me = db.users[currentUser];
+  const debt = me.debt || 0;
+  const amt = parseInt(document.getElementById('loanAmount').value, 10);
+  if (isNaN(amt) || amt <= 0 || debt + amt > 500) return showNotice('Лимит долга 500 ß.');
+  me.debt = debt + amt;
+  me.balance = (me.balance || 0) + amt;
+  saveDB();
+  renderMain();
+}
+
+function repayLoan() {
+  const me = db.users[currentUser];
+  const debt = me.debt || 0;
+  if ((me.balance || 0) < debt) return showNotice('Недостаточно ß.');
+  me.balance -= debt;
+  me.debt = 0;
+  saveDB();
+  renderMain();
+}
+
+function addRule() {
+  const num = document.getElementById('ruleNum').value.trim();
+  const text = document.getElementById('ruleText').value.trim();
+  if (!num || !text) return;
+  if (!db.rules) db.rules = [];
+  db.rules.push({ num, text });
+  saveDB();
+  renderMain();
+}
+
+function setStaffPass() {
+  const p = document.getElementById('newStaffPass').value.trim();
+  if (p.length < 4) return showNotice('Минимум 4 символа.');
+  db.users[currentUser].staffPass = p;
+  staffUnlocked = true;
+  saveDB();
+  renderMain();
+}
+
+function unlockStaff() {
+  if (document.getElementById('checkStaffPass').value === db.users[currentUser].staffPass) {
+    staffUnlocked = true;
+    renderMain();
+  } else showNotice('Неверный пароль!');
+}
+
+function giveAward() {
+  const uid = document.getElementById('awTarget').value;
+  const emoji = document.getElementById('awEmoji').value.trim() || '🏅';
+  const title = document.getElementById('awTitle').value.trim();
+  const desc = document.getElementById('awDesc').value.trim();
+  if (!uid || !title || db.users[uid].isRaim) return;
+  if (!db.users[uid].awards) db.users[uid].awards = [];
+  db.users[uid].awards.push({ emoji, title, desc, date: new Date().toLocaleDateString('ru-RU'), by: db.users[currentUser].nick });
+  saveDB();
+  showNotice('Награда выдана!');
+}
+
+function toggleBanUser() {
+  const uid = document.getElementById('banTarget').value;
+  if (!uid || db.users[uid].isRaim) return;
+  db.users[uid].banned = !db.users[uid].banned;
+  saveDB();
+  showNotice(db.users[uid].banned ? 'Заблокирован.' : 'Разблокирован.');
+}
+
+function editBalance(mode) {
+  const uid = document.getElementById('balTarget').value;
+  const amt = parseInt(document.getElementById('balAmount').value, 10);
+  if (!uid || isNaN(amt)) return;
+  const cur = db.users[uid].balance || 0;
+  if (mode === 'add') db.users[uid].balance = cur + amt;
+  if (mode === 'sub') db.users[uid].balance = Math.max(0, cur - amt);
+  if (mode === 'set') db.users[uid].balance = Math.max(0, amt);
+  saveDB();
+  renderMain();
+}
+
+function toggleRole(give) {
+  const uid = document.getElementById('roleTarget').value;
+  const val = document.getElementById('roleSelect').value;
+  const u = db.users[uid];
+  if (!u) return;
+  if (val === 'VIP1') u.vip = give ? 1 : 0;
+  else if (val === 'VIP2') u.vip = give ? 2 : 0;
+  else if (val === 'PAIDBP') u.paidBp = give;
+  else {
+    if (!u.roles) u.roles = [];
+    if (give && !u.roles.includes(val)) u.roles.push(val);
+    if (!give) u.roles = u.roles.filter(r => r !== val);
+  }
+  saveDB();
+  renderMain();
+}
+
+function resetStaffPass() {
+  const uid = document.getElementById('roleTarget').value;
+  if (db.users[uid]) { delete db.users[uid].staffPass; saveDB(); showNotice('Пароль сброшен.'); }
+}
+
+function saveFlag() {
+  db.flag = {
+    top: document.getElementById('fTop').value,
+    mid: document.getElementById('fMid').value,
+    bot: document.getElementById('fBot').value,
+    icon: document.getElementById('fIcon').value.trim() || '👑'
+  };
+  saveDB();
+  renderMain();
+}
+
+function saveChatLink(bind) {
+  db.chatLink = bind ? document.getElementById('chatUrlInput').value.trim() : '';
+  saveDB();
+  renderMain();
+}
+
+function toggleTestMode() { testAsPlayer = !testAsPlayer; renderMain(); }
+
+function wipeOtherUsers() {
+  Object.keys(db.users).forEach(k => { if (!db.users[k].isRaim) delete db.users[k]; });
+  db.applications = {};
+  saveDB();
+  renderMain();
+  showNotice('Чужие аккаунты удалены.');
+}
+
+function openUserProfile(uid) {
+  const u = db.users[uid];
+  if (!u) return;
+  const vip = u.vip === 2 ? '🔮 VIP 2' : u.vip === 1 ? '💎 VIP 1' : 'Нет';
+  const roles = (u.roles || []).join(', ') || 'Житель';
+  const awards = u.hideAwards ? '<i>Скрыто</i>' : ((u.awards || []).map((a, i) => `<div class="award-item" onclick="showAwardModal('${uid}', ${i})">${a.emoji} ${esc(a.title)}</div>`).join('') || 'Нет');
+  const items = (u.items || []).map(it => `${it.emoji} ${esc(it.name)}`).join(', ') || 'Нет';
+  showModal(`
+    <div style="text-align:center;">
+      <img src="${u.photo || 'https://placeholder.com'}" class="avatar" style="margin:0 auto 8px;">
+      <h3>${esc(u.nick)}</h3>
+      <div style="color:var(--gta-blue);font-size:13px;">${u.username !== '-' ? '@' + esc(u.username) : ''}</div>
+    </div>
+    <div style="margin-top:12px;font-size:13px;line-height:1.7;">
+      <b>Баланс:</b> ${u.balance || 0} ß<br><b>VIP:</b> ${vip}<br><b>Роли:</b> ${esc(roles)}<br>
+      <b>Имущество:</b> ${items}<br><b>Награды:</b><br>${awards}
+    </div>
+    <button class="btn-secondary" style="margin-top:14px;" onclick="closeModal()">Закрыть</button>
+  `);
+}
+
+function showAwardModal(uid, idx) {
+  const a = db.users[uid]?.awards?.[idx];
+  if (!a) return;
+  showModal(`
+    <div style="text-align:center;font-size:40px;">${a.emoji}</div>
+    <h3 style="text-align:center;">${esc(a.title)}</h3>
+    <p style="font-size:14px;margin:10px 0;">${esc(a.desc || 'Без описания')}</p>
+    <div style="font-size:12px;color:var(--muted);">Выдал: <b>${esc(a.by)}</b> • ${a.date}</div>
+    <button class="btn-secondary" style="margin-top:14px;" onclick="closeModal()">Закрыть</button>
+  `);
+}
+
+function showNotice(text) {
+  showModal(`<p style="font-size:15px;text-align:center;margin:10px 0;">${esc(text)}</p><button class="btn-gta" onclick="closeModal()">Понятно</button>`);
+}
+
+function showModal(inner) {
+  document.getElementById('modalContent').innerHTML = inner;
+  document.getElementById('modalBox').style.display = 'flex';
+}
+
+function closeModal() { document.getElementById('modalBox').style.display = 'none'; }
+
+function esc(s) {
+  return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+initApp();
+</script>
+</body>
+</html>
